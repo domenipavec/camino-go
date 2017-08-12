@@ -1,0 +1,226 @@
+/* main box */
+body {
+	background: #CCC;
+    color: #666666;
+}
+.container-body {
+    background: #fff;
+    box-shadow: 0 0 10px #888888;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.container-fluid {
+    background: #e8e8e8;
+}
+
+/* header */
+.header {
+    margin-top: 15px;
+}
+.header-logo-text {
+    font-size: 36px;
+    font-weight: bold;
+    color: #787676;
+}
+.header-logo-text:hover {
+    color: #787676;
+}
+.header-slogan {
+    color: #838181;
+    padding-left: 95px;
+}
+
+/* navbar-default */
+.navbar-default {
+    min-height: 0;
+    border: 0;
+    margin-bottom: 0;
+}
+.navbar-default .navbar-collapse {
+    padding-left: 0;
+    background: #aabe1e;
+    background: -webkit-linear-gradient(#99af05, #b7cc33); /* For Safari 5.1 to 6.0 */
+    background:    -moz-linear-gradient(#99af05, #b7cc33); /* For Firefox 3.6 to 15 */
+    background:      -o-linear-gradient(#99af05, #b7cc33); /* For Opera 11.1 to 12.0 */
+    background:         linear-gradient(#99af05, #b7cc33); /* Standard syntax */
+    border: none;
+    border-radius: 0;
+}
+.navbar-default .navbar-nav>li>a {
+    border-right: 1px solid #899D00;
+    border-left: 1px solid #A7D101;
+}
+.navbar-default .navbar-nav>li>a, .navbar-default .navbar-nav .navbar-text {
+    color: #FFF;
+    font-weight: bold;
+}
+.navbar-default .navbar-nav>li>a:hover,
+.navbar-default .navbar-nav>.open>a,
+.navbar-default .navbar-nav>.open>a:hover,
+.navbar-default .navbar-nav>.open>a:focus {
+    color: #FFF;
+    background: #a9ba2d;
+    background: -webkit-linear-gradient(#8da006, #a9bc2f); /* For Safari 5.1 to 6.0 */
+    background:    -moz-linear-gradient(#8da006, #a9bc2f); /* For Firefox 3.6 to 15 */
+    background:      -o-linear-gradient(#8da006, #a9bc2f); /* For Opera 11.1 to 12.0 */
+    background:         linear-gradient(#8da006, #a9bc2f); /* Standard syntax */
+}
+.navbar-default .navbar-nav>li>a:active,
+.navbar-default .navbar-nav>.open>a,
+.navbar-default .navbar-nav>.open>a:hover,
+.navbar-default .navbar-nav>.open>a:focus,
+.navbar-default .navbar-nav>li>a:visited {
+    color: #FFF;
+}
+.navbar-default .navbar-nav>li>a.active {
+    color: #FFF;
+    background: #96a62a;
+    background: -webkit-linear-gradient(#7d9003, #96a62a); /* For Safari 5.1 to 6.0 */
+    background:    -moz-linear-gradient(#7d9003, #96a62a); /* For Firefox 3.6 to 15 */
+    background:      -o-linear-gradient(#7d9003, #96a62a); /* For Opera 11.1 to 12.0 */
+    background:         linear-gradient(#7d9003, #96a62a); /* Standard syntax */
+}
+
+/* content */
+.content {
+    margin-top: 15px;
+}
+h2 {
+    color: #85970C;
+}
+h3 {
+    color: #555;
+    font-size: 130%;
+}
+.title-link {
+    color: inherit;
+}
+.clear {
+    clear: both;
+}
+.styled {
+    background: #fff;
+    padding: 10px;
+    border: 1px solid #000;
+}
+img.styled {
+    margin: 0 7px 7px 0;
+}
+img.pull-right {
+    margin: 0 0 10px 10px;
+}
+textarea {
+    resize: none;
+}
+
+/* diary */
+.diary-entry-footer {
+    font-style: italic;
+    border-bottom: 1px solid #a7a7a7;
+    font-size: 85%;
+}
+.diary-entry-footer>p {
+    margin-bottom: 0;
+    margin-right: .3em;
+    float: left;
+}
+
+.diary-pictures {
+    clear: both;
+}
+.diary-entry img {
+    float: left;
+}
+
+.diary-pictures img {
+	max-height: 113px;
+}
+
+.diary-pictures a {
+	width: 172px;
+	height: 135px;
+	text-align: center;
+	display: block;
+	float: left;
+	padding: 10px;
+	background: #fff;
+	border: 1px solid black;
+	margin: 0 7px 7px 0;
+}
+
+.pagination {
+    display: block;
+}
+.breadcrumb {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+.alert-info {
+    background: #f5f5f5;
+    border: none;
+    color: #666666;
+}
+
+/* comments */
+.diary-comments {
+    clear: both;
+    list-style: none;
+    margin: 20px 0;
+    padding: 0;
+}
+.diary-comments>li {
+    margin: 5px 0;
+    padding: 5px;
+    list-style: none;
+    border-top: 1px dotted #a7a7a7;
+    border-bottom: 1px dotted #a7a7a7;
+}
+.diary-comments>.odd {
+    background: #dfdfdf;
+}
+.diary-comments>.even {
+    background: #e4e2e2;
+}
+.diary-comments .info {
+    color: #999;
+    margin: 0;
+    padding: 0;
+    font-size: .9em;
+}
+.diary-comments>.odd>.info {
+    color: #607a00;
+}
+
+/* map */
+.map-list {
+    display: none;
+}
+
+/* gallery */
+#gallery img {
+	max-height: 75px;
+}
+
+#gallery a {
+	width: 122px;
+	height: 97px;
+	text-align: center;
+	display: block;
+	float: left;
+	padding: 10px;
+	background: #fff;
+	border: 1px solid black;
+	margin: 0 7px 7px 0;
+}
+
+
+/* footer */
+.footer {
+    background: #dcdcdc;
+    border-top: 2px solid #CCC;
+    margin-bottom: 15px;
+    padding-top: 20px;
+    text-align: center;
+    color: #666;
+}

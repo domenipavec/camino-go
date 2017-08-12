@@ -1,0 +1,18 @@
+{% extends "../../templates/base.html" %}
+
+{% block title %}Povezave{% endblock %}
+
+{% block content %}
+<ul id="out_links">
+{% for link in links %}
+	<li>
+		<b>
+            <a href="{{ link.URL }}" target="_blank">{{ link.Title }}</a>
+		</b>
+        {% if link.Description %}
+            - {{ link.Description }}
+        {% endif %}
+	</li>
+{% endfor %}
+</ul>
+{% endblock %}
