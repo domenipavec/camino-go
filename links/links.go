@@ -46,6 +46,12 @@ func (l *Links) ListHandler(w http.ResponseWriter, r *http.Request) {
 
 	context := pongo2.Context{
 		"links": allLinks,
+		"ifPath": func(path, output string) string {
+			if r.URL.Path == path {
+				return output
+			}
+			return ""
+		},
 	}
 
 	if r.Context().Value("user") != nil {
