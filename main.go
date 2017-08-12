@@ -14,6 +14,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/matematik7/camino-go/links"
+	"github.com/matematik7/camino-go/pages"
 	"github.com/matematik7/gongo/authentication"
 	"github.com/matematik7/gongo/authorization"
 	"github.com/matematik7/gongo/resources"
@@ -44,6 +45,7 @@ func main() {
 	Resources := resources.New()
 
 	Links := links.New()
+	CaminoPage := pages.New(1)
 
 	DB, err := gorm.Open("postgres", "host=localhost user=postgres sslmode=disable password=postgres")
 	if err != nil {
@@ -68,12 +70,18 @@ func main() {
 	if err := Links.Configure(DB); err != nil {
 		log.Fatalf("could not configure links: %v", err)
 	}
+	if err := CaminoPage.Configure(DB); err != nil {
+		log.Fatalf("could not configure camino page: %v", err)
+	}
 
 	if err := Resources.Register("Authorization", Authorization.Resources()...); err != nil {
 		log.Fatalf("could not add resources for authorization: %v", err)
 	}
 	if err := Resources.Register("Links", Links.Resources()...); err != nil {
 		log.Fatalf("could not add resources for links: %v", err)
+	}
+	if err := Resources.Register("Pages", CaminoPage.Resources()...); err != nil {
+		log.Fatalf("could not add resources for pages: %v", err)
 	}
 
 	r := chi.NewRouter()
@@ -86,7 +94,9 @@ func main() {
 
 	r.Mount("/admin", Resources.ServeMux("/admin"))
 	r.Mount("/auth", Authentication.ServeMux())
+
 	r.Mount("/links", Links.ServeMux())
+	r.Mount("/camino", CaminoPage.ServeMux())
 
 	r.Mount("/static", http.StripPrefix("/static", http.FileServer(packr.NewBox("./static"))))
 

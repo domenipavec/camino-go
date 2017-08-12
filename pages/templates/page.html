@@ -1,0 +1,9 @@
+{% extends "../../templates/base.html" %}
+
+{% block title %}{{ page.Title }}{% endblock %}
+
+{% block content %}
+{% autoescape off %}
+{{ page.Content }}
+{% endautoescape %}
+{% endblock %}
