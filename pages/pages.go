@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/flosch/pongo2"
-	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
+	"github.com/matematik7/gongo"
 	"github.com/matematik7/gongo/authorization"
 )
 
@@ -22,27 +22,27 @@ func New(id int) *Pages {
 	}
 }
 
-func (l *Pages) Configure(DB *gorm.DB) error {
-	l.DB = DB
+func (l *Pages) Configure(app gongo.App) error {
+	l.DB = app.DB
 
 	return nil
 }
 
-func (l *Pages) Resources() []interface{} {
+func (l Pages) Resources() []interface{} {
 	return []interface{}{
 		&Page{},
 	}
 }
 
-func (l *Pages) ServeMux() *chi.Mux {
-	router := chi.NewRouter()
-
-	router.Get("/", l.ViewHandler)
-
-	return router
+func (l Pages) Name() string {
+	return "Pages"
 }
 
-func (l *Pages) ViewHandler(w http.ResponseWriter, r *http.Request) {
+func (l *Pages) ServeMux() http.Handler {
+	return l
+}
+
+func (l *Pages) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var page Page
 	if err := l.DB.Debug().First(&page, l.id).Error; err != nil {
 		http.Error(w, err.Error(), 500)
