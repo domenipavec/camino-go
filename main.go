@@ -99,5 +99,12 @@ func main() {
 
 	r.Mount("/static", http.StripPrefix("/static", http.FileServer(packr.NewBox("./static"))))
 
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		app.Render.Template(w, r, "error.html", gongo.Context{
+			"title": "Not Found",
+			"msg":   "This is not the web page you are looking for.",
+		})
+	})
+
 	http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), r)
 }

@@ -1,11 +1,11 @@
-{% macro title() %}
+{% macro getTitle() %}
 {% block title %}Camino{% endblock %}
 {% endmacro %}
 <!DOCTYPE html>
 <html lang="sl">
   <head>
     <meta charset="utf-8">
-    <title>{{ title() }} :: Camino de Santiago de Compostela</title>
+    <title>{{ getTitle() }} :: Camino de Santiago de Compostela</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Pavlov dnevnik romanja v Santiago de Compostela. Romarska pot k svetemu Jakobu (špansko ime: El Camino de Santiago), v Galiciji na severozahodu Španije, je ena najstarejših romarskih poti, stara več kot tisoč let. Poleg Rima in Jeruzalema je največja krščanska romarska pot. Ime je dobila po sv. Jakobu.">
     <meta name="author" content="Domen Ipavec">
@@ -60,7 +60,7 @@
     </div>
 
     <div class="container-fluid content">
-        <h2>{{ title() }}</h2>
+        <h2>{{ getTitle() }}</h2>
 
         {% block content %}{% endblock %}<br />
 
