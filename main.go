@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -15,6 +14,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/matematik7/camino-go/links"
 	"github.com/matematik7/camino-go/pages"
+	"github.com/matematik7/gongo"
 	"github.com/matematik7/gongo/authentication"
 	"github.com/matematik7/gongo/authorization"
 	"github.com/matematik7/gongo/resources"
@@ -37,15 +37,8 @@ func main() {
 	viper.SetDefault("prod", false)
 	isProd := viper.GetBool("prod")
 
-	viper.SetDefault("cookie_key", "SESSION_SECRET")
+	viper.SetDefault("cookie_key", "SESSION_SECRET") // TODO: generate secret in generator
 	cookieKey := viper.GetString("cookie_key")
-
-	Authentication := authentication.New()
-	Authorization := authorization.New()
-	Resources := resources.New()
-
-	Links := links.New()
-	CaminoPage := pages.New(1)
 
 	DB, err := gorm.Open("postgres", "host=localhost user=postgres sslmode=disable password=postgres")
 	if err != nil {
@@ -58,30 +51,31 @@ func main() {
 	store.Options.HttpOnly = true
 	store.Options.Secure = isProd
 
-	if err := Authentication.Configure(store, Authorization, url+"/auth"); err != nil {
-		log.Fatalf("could not configure authentication: %v", err)
-	}
-	if err := Authorization.Configure(DB, store); err != nil {
-		log.Fatalf("could not configure authorization: %v", err)
-	}
-	if err := Resources.Configure(DB, Authorization); err != nil {
-		log.Fatalf("could not configure resources: %v", err)
-	}
-	if err := Links.Configure(DB); err != nil {
-		log.Fatalf("could not configure links: %v", err)
-	}
-	if err := CaminoPage.Configure(DB); err != nil {
-		log.Fatalf("could not configure camino page: %v", err)
+	Authentication := authentication.New(url + "/auth")
+	Authorization := authorization.New()
+	Resources := resources.New("/admin")
+
+	Links := links.New()
+	CaminoPage := pages.New(1)
+
+	app := gongo.App{
+		Authentication: Authentication,
+		Authorization:  Authorization,
+		DB:             DB,
+		Resources:      Resources,
+		Store:          store,
+		Controllers: []gongo.Controller{
+			Links,
+			CaminoPage,
+		},
 	}
 
-	if err := Resources.Register("Authorization", Authorization.Resources()...); err != nil {
-		log.Fatalf("could not add resources for authorization: %v", err)
+	if err := app.Configure(); err != nil {
+		log.Fatalln(err)
 	}
-	if err := Resources.Register("Links", Links.Resources()...); err != nil {
-		log.Fatalf("could not add resources for links: %v", err)
-	}
-	if err := Resources.Register("Pages", CaminoPage.Resources()...); err != nil {
-		log.Fatalf("could not add resources for pages: %v", err)
+
+	if err := app.RegisterResources(); err != nil {
+		log.Fatalln(err)
 	}
 
 	r := chi.NewRouter()
@@ -92,8 +86,8 @@ func main() {
 	r.Use(middleware.WithValue("store", store))
 	r.Use(Authorization.Middleware)
 
-	r.Mount("/admin", Resources.ServeMux("/admin"))
-	r.Mount("/auth", Authentication.ServeMux())
+	r.Mount("/admin", app.Resources.ServeMux())
+	r.Mount("/auth", app.Authentication.ServeMux())
 
 	r.Mount("/links", Links.ServeMux())
 	r.Mount("/camino", CaminoPage.ServeMux())
@@ -101,11 +95,4 @@ func main() {
 	r.Mount("/static", http.StripPrefix("/static", http.FileServer(packr.NewBox("./static"))))
 
 	http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), r)
-}
-
-type History struct {
-	ID        uint `gorm:"primary_key"`
-	CreatedAt time.Time
-	Name      string
-	User      authorization.User `gorm:"not null"`
 }
