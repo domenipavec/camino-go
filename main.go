@@ -17,6 +17,7 @@ import (
 	"github.com/matematik7/gongo"
 	"github.com/matematik7/gongo/authentication"
 	"github.com/matematik7/gongo/authorization"
+	"github.com/matematik7/gongo/render"
 	"github.com/matematik7/gongo/resources"
 	"github.com/spf13/viper"
 )
@@ -53,7 +54,10 @@ func main() {
 
 	Authentication := authentication.New(url + "/auth")
 	Authorization := authorization.New()
+	Render := render.New(isProd)
 	Resources := resources.New("/admin")
+
+	Render.AddTemplates(packr.NewBox("./templates"))
 
 	Links := links.New()
 	CaminoPage := pages.New(1)
@@ -62,6 +66,7 @@ func main() {
 		Authentication: Authentication,
 		Authorization:  Authorization,
 		DB:             DB,
+		Render:         Render,
 		Resources:      Resources,
 		Store:          store,
 		Controllers: []gongo.Controller{

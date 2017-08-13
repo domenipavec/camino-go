@@ -1,17 +1,16 @@
 package pages
 
 import (
-	"log"
 	"net/http"
 
-	"github.com/flosch/pongo2"
+	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/gongo"
-	"github.com/matematik7/gongo/authorization"
 )
 
 type Pages struct {
-	DB *gorm.DB
+	DB     *gorm.DB
+	render gongo.Render
 
 	id int
 }
@@ -24,6 +23,9 @@ func New(id int) *Pages {
 
 func (l *Pages) Configure(app gongo.App) error {
 	l.DB = app.DB
+	l.render = app.Render
+
+	l.render.AddTemplates(packr.NewBox("./templates"))
 
 	return nil
 }
@@ -44,33 +46,14 @@ func (l *Pages) ServeMux() http.Handler {
 
 func (l *Pages) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var page Page
-	if err := l.DB.Debug().First(&page, l.id).Error; err != nil {
+	if err := l.DB.First(&page, l.id).Error; err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	context := pongo2.Context{
+	context := gongo.Context{
 		"page": page,
-		"ifPath": func(path, output string) string {
-			if r.URL.Path == path {
-				return output
-			}
-			return ""
-		},
-	}
-	log.Println(context)
-
-	if r.Context().Value("user") != nil {
-		context["user"] = r.Context().Value("user").(authorization.User)
 	}
 
-	ts := pongo2.NewSet("test", pongo2.MustNewLocalFileSystemLoader("./pages/templates/"))
-	t, err := ts.FromFile("page.html")
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-	}
-	err = t.ExecuteWriter(context, w)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-	}
+	l.render.Template(w, r, "page.html", context)
 }

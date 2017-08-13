@@ -3,33 +3,41 @@ package links
 import (
 	"net/http"
 
-	"github.com/flosch/pongo2"
 	"github.com/go-chi/chi"
+	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
-	"github.com/matematik7/gongo/authorization"
+	"github.com/matematik7/gongo"
 )
 
 type Links struct {
-	DB *gorm.DB
+	DB     *gorm.DB
+	render gongo.Render
 }
 
 func New() *Links {
 	return &Links{}
 }
 
-func (l *Links) Configure(DB *gorm.DB) error {
-	l.DB = DB
+func (l *Links) Configure(app gongo.App) error {
+	l.DB = app.DB
+	l.render = app.Render
+
+	l.render.AddTemplates(packr.NewBox("./templates"))
 
 	return nil
 }
 
-func (l *Links) Resources() []interface{} {
+func (l Links) Resources() []interface{} {
 	return []interface{}{
 		&Link{},
 	}
 }
 
-func (l *Links) ServeMux() *chi.Mux {
+func (l Links) Name() string {
+	return "Links"
+}
+
+func (l *Links) ServeMux() http.Handler {
 	router := chi.NewRouter()
 
 	router.Get("/", l.ListHandler)
@@ -44,27 +52,9 @@ func (l *Links) ListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	context := pongo2.Context{
+	context := gongo.Context{
 		"links": allLinks,
-		"ifPath": func(path, output string) string {
-			if r.URL.Path == path {
-				return output
-			}
-			return ""
-		},
 	}
 
-	if r.Context().Value("user") != nil {
-		context["user"] = r.Context().Value("user").(authorization.User)
-	}
-
-	ts := pongo2.NewSet("test", pongo2.MustNewLocalFileSystemLoader("./links/templates/"))
-	t, err := ts.FromFile("links.html")
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-	}
-	err = t.ExecuteWriter(context, w)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-	}
+	l.render.Template(w, r, "links.html", context)
 }
