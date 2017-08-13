@@ -48,7 +48,7 @@ func (l *Links) ServeMux() http.Handler {
 func (l *Links) ListHandler(w http.ResponseWriter, r *http.Request) {
 	var allLinks []Link
 	if err := l.DB.Find(&allLinks).Error; err != nil {
-		http.Error(w, err.Error(), 500)
+		l.render.Error(w, r, err)
 		return
 	}
 

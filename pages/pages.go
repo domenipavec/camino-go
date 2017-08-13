@@ -47,7 +47,7 @@ func (l *Pages) ServeMux() http.Handler {
 func (l *Pages) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var page Page
 	if err := l.DB.First(&page, l.id).Error; err != nil {
-		http.Error(w, err.Error(), 500)
+		l.render.Error(w, r, err)
 		return
 	}
 
