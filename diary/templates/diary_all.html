@@ -1,0 +1,53 @@
+{% extends "diary_base.html" %}
+
+{% block title %}Dnevnik{% endblock %}
+
+{% block content %}
+
+{% for entry in entries %}
+    <div class="diary-entry">
+        <h3 class="clear">
+            <a class="title-link" href="/diary/{{ entry.ID }}" title="Preberi več">
+				{{ entry.Title }}
+				{% if entry.Unread %}
+                    <span class="label label-danger">Novo</span>
+				{% endif %}
+				{% if entry.NewComments %}
+                    <span class="label label-danger">Novi komentarji</span>
+				{% endif %}
+            </a>
+        </h3>
+
+		{% include "diary_header.html" %}
+
+		{% if entry.Thumbnail %}
+            <img src="/data/diary/{{ entry.Thumbnail }}" alt="{{ entry.Title }}" class="styled">
+		{% endif %}
+        <div class="diary_entry_content">
+            <p>
+			{% autoescape off %}
+				{{ entry.Text|striptags|truncatewords:50 }}
+			{% endautoescape %}
+            <br><a href="/diary/{{ entry.ID }}" title="Preberi več">Več ...</a>
+			</p>
+        </div>
+
+    </div>
+{% endfor %}
+
+{% if pages|length > 1 %}
+<ul class="pagination clear">
+	{{ pagination }}
+	{% if prevOffset >= pages|first %}
+		<li><a href="/diary?year={{ year }}&offset={{ prevOffset }}">&lt;</a></li>
+	{% endif %}
+	{% for i in pages %}
+		<li{% if offset == i %} class="active"{% endif %}><a href="/diary?year={{ year }}&offset={{ i }}">{{ forloop.Counter }}</a></li>
+	{% endfor %}
+	{% if nextOffset <= pages|last %}
+		<li><a href="/diary?year={{ year }}&offset={{ nextOffset }}">&gt;</a></li>
+	{% endif %}
+    <div class="clear"></div>
+</ul>
+{% endif %}
+{% endblock %}

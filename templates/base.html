@@ -39,10 +39,13 @@
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
                 <li class="dropdown">
-                        <a href="#" class="dropdown-toggle active" data-toggle="dropdown" role="button" aria-expanded="false">Dnevnik <span class="caret"></span></a>
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Dnevnik <span class="caret"></span></a>
+                    <a href="#" class="dropdown-toggle{% if request.Path == '/diary' or request.Path == '/' %} active{% endif %}" data-toggle="dropdown" role="button" aria-expanded="false">
+                        Dnevnik <span class="caret"></span>
+                    </a>
                     <ul class="dropdown-menu" role="menu">
-                            <li>2017</li>
+                        {% for year in diaryYears %}
+                            <li><a href="/diary?year={{ year }}" title="Dnevnik za leto {{ year }}">{{ year }}</a></li>
+                        {% endfor %}
                     </ul>
                 </li>
                 <li><a href="/camino"{% if request.Path == '/camino' %} class="active"{% endif %}>Camino</a></li>
@@ -60,6 +63,8 @@
     </div>
 
     <div class="container-fluid content">
+        {% block breadcrumbs %}{% endblock %}
+
         <h2>{{ getTitle() }}</h2>
 
         {% block content %}{% endblock %}<br />

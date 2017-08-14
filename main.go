@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/matematik7/camino-go/diary"
 	"github.com/matematik7/camino-go/links"
 	"github.com/matematik7/camino-go/pages"
 	"github.com/matematik7/gongo"
@@ -61,6 +62,7 @@ func main() {
 
 	Links := links.New()
 	CaminoPage := pages.New(1)
+	Diary := diary.New()
 
 	app := gongo.App{
 		Authentication: Authentication,
@@ -70,6 +72,7 @@ func main() {
 		Resources:      Resources,
 		Store:          store,
 		Controllers: []gongo.Controller{
+			Diary,
 			Links,
 			CaminoPage,
 		},
@@ -94,6 +97,8 @@ func main() {
 	r.Mount("/admin", app.Resources.ServeMux())
 	r.Mount("/auth", app.Authentication.ServeMux())
 
+	r.Mount("/diary", Diary.ServeMux())
+	r.Mount("/", Diary.ServeMux())
 	r.Mount("/links", Links.ServeMux())
 	r.Mount("/camino", CaminoPage.ServeMux())
 

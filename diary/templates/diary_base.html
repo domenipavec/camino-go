@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    {% if (request.Path == '/' or request.Path == '/diary') and not year %}
+        <li class="active">Dnevnik</li>
+    {% else %}
+        <li><a href="/diary">Dnevnik</a></li>
+        {% if request.Path == '/' or request.Path == '/diary' %}
+            <li class="active">{{ year }}</li>
+        {% else %}
+            <li>
+                <a href="/diary?year={{ entry.CreatedAt.Year() }}">
+                    {{ entry.CreatedAt.Year() }}
+                </a>
+            </li>
+            <li class="active">{{ entry.Title }}</li>
+        {% endif %}
+    {% endif %}
+</ol>
+{% endblock %}
