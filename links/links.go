@@ -3,7 +3,6 @@ package links
 import (
 	"net/http"
 
-	"github.com/go-chi/chi"
 	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/gongo"
@@ -38,14 +37,10 @@ func (l Links) Name() string {
 }
 
 func (l *Links) ServeMux() http.Handler {
-	router := chi.NewRouter()
-
-	router.Get("/", l.ListHandler)
-
-	return router
+	return l
 }
 
-func (l *Links) ListHandler(w http.ResponseWriter, r *http.Request) {
+func (l *Links) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var allLinks []Link
 	if err := l.DB.Find(&allLinks).Error; err != nil {
 		l.render.Error(w, r, err)
