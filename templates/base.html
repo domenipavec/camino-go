@@ -43,8 +43,12 @@
                         Dnevnik <span class="caret"></span>
                     </a>
                     <ul class="dropdown-menu" role="menu">
-                        {% for year in diaryYears %}
-                            <li><a href="/diary?year={{ year }}" title="Dnevnik za leto {{ year }}">{{ year }}</a></li>
+                        {% for diaryYear in diaryYears %}
+                            <li{% if diaryYear == year %} class="active"{% endif %}>
+                                <a href="/diary?year={{ diaryYear }}" title="Dnevnik za leto {{ diaryYear }}">
+                                    {{ diaryYear }}
+                                </a>
+                            </li>
                         {% endfor %}
                     </ul>
                 </li>
