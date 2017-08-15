@@ -24,8 +24,8 @@ type DiaryEntry struct {
 type Comment struct {
 	gorm.Model
 	DiaryEntryID uint
-	Comment      string `gorm:"type:text"`
-	Author       authorization.User
+	Comment      string             `gorm:"type:text" valid:"required"`
+	Author       authorization.User `valid:"-"`
 	AuthorID     uint
 }
 

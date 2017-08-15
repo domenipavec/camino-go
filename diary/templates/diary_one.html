@@ -42,23 +42,23 @@
             </li>
         {% endfor %}
 
-        <!-- <?php if ($i % 2 == 0): ?>
-            <li class="even">
-        <?php else: ?>
+        {% if entry.Comments|length % 2 == 0 %}
             <li class="odd">
-        <?php endif; ?>
-        <?php if ($canComment): ?>
-            <?=form_open('diary/comment/'.$ID); ?>
+        {% else %}
+            <li class="even">
+        {% endif %}
+        {% if user %}
+            <form action="/diary/{{ entry.ID }}/comment" method="POST" accept-charset="utf-8">
                 <div class="form-group">
                     <textarea class="form-control" name="comment" id="comment" placeholder="Vpišite vaše sporočilo." required></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary">Sporoči!</button>
-            <?=form_close(); ?>
-        <?php else: ?>
+            </form>
+        {% else %}
             <p>Za komentiranje se prijavite:</p>
-            <h4><a href="#" class="glogin-button" title="Prijavite se z Google+!">Prijava!</a></h4>
-        <?php endif; ?>
-        </li> -->
+            <h4><a href="/auth/gplus" title="Prijavite se z Google+!" class="btn btn-link">Prijava <i class="fa fa-sign-in"></i></a></h4>
+        {% endif %}
+        </li>
     </ul>
 </div>
 

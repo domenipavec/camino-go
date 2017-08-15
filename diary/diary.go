@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/go-chi/chi"
 	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
@@ -62,8 +63,51 @@ func (c *Diary) ServeMux() http.Handler {
 	router.Get("/read", c.ReadHandler)
 
 	router.Get("/{diaryID:[0-9]+}", c.ViewHandler)
+	router.Post("/{diaryID:[0-9]+}/comment", c.CommentHandler)
 
 	return router
+}
+
+func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
+	//TODO: move this get user to authorization to perform interface is nil validation and have proper context key
+	userItf := r.Context().Value("user")
+	if userItf == nil {
+		//TODO: Add forbidden and not found to render
+		// We DO need to see your identification.
+		c.render.Error(w, r, errors.New("Forbidden"))
+		return
+	}
+	user := userItf.(authorization.User)
+
+	diaryEntry := DiaryEntry{}
+	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	if query.RecordNotFound() {
+		// TODO: add not found to render
+		c.render.Error(w, r, errors.New("Not found"))
+		return
+	} else if query.Error != nil {
+		c.render.Error(w, r, query.Error)
+		return
+	}
+
+	comment := Comment{
+		DiaryEntryID: diaryEntry.ID,
+		AuthorID:     user.ID,
+		Comment:      r.FormValue("comment"),
+	}
+
+	err := c.DB.Save(&comment).Error
+	if err != nil {
+		// TODO: figure better way for handling validation errors for bigger forms
+		if _, ok := err.(govalidator.Errors); ok {
+			// TODO: flash message about empty comment
+			http.Redirect(w, r, r.Referer(), http.StatusFound)
+		}
+		c.render.Error(w, r, err)
+		return
+	}
+
+	http.Redirect(w, r, r.Referer(), http.StatusFound)
 }
 
 func (c *Diary) ReadHandler(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +125,7 @@ func (c *Diary) ReadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := c.DB.Debug().Exec(
+	query := c.DB.Exec(
 		`INSERT INTO entry_user_reads
 		(created_at, updated_at, diary_entry_id, user_id)
 		(
@@ -168,7 +212,13 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := c.DB.Model(&DiaryEntry{}).
 		Select("*").
-		Joins("natural left join (select diary_entry_id as id, count(*) as num_comments from comments group by diary_entry_id) c").
+		Joins(
+			`natural left join (
+				SELECT diary_entry_id as id, count(*) as num_comments
+				FROM comments
+				WHERE comments.deleted_at IS NULL
+				GROUP BY diary_entry_id
+			) c`).
 		Preload("Author").
 		Order("created_at desc")
 
@@ -186,12 +236,15 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 				LEFT JOIN (
 					SELECT diary_entry_id, MAX(created_at) as created_at
 					FROM comments
+					WHERE comments.deleted_at IS NULL
 					GROUP BY diary_entry_id
 				) rc ON rc.diary_entry_id = entry_user_reads.diary_entry_id
 				WHERE user_id = ?
 			) r`,
 			user.ID,
 		)
+	} else {
+		query = query.Select("*, true as viewed")
 	}
 
 	var yearItf interface{}

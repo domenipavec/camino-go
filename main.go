@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/gobuffalo/packr"
@@ -46,6 +47,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not open db: %v", err)
 	}
+
+	validate := func(scope *gorm.Scope) {
+		ok, err := govalidator.ValidateStruct(scope.Value)
+		if !ok {
+			scope.Err(err)
+		}
+	}
+
+	DB.Callback().Create().Before("gorm:before_create").Register("govalidator:before_create", validate)
+	DB.Callback().Update().Before("gorm:before_update").Register("govalidator:before_update", validate)
 
 	store := sessions.NewCookieStore([]byte(cookieKey))
 	store.MaxAge(60 * 60 * 24 * 30)
@@ -104,10 +115,18 @@ func main() {
 
 	r.Mount("/static", http.StripPrefix("/static", http.FileServer(packr.NewBox("./static"))))
 
+	//TODO: Move these handlers to render
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		app.Render.Template(w, r, "error.html", gongo.Context{
 			"title": "Not Found",
 			"msg":   "This is not the web page you are looking for.",
+		})
+	})
+
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		app.Render.Template(w, r, "error.html", gongo.Context{
+			"title": "Method Not Allowed",
+			"msg":   "Your position's correct, except... not this method.",
 		})
 	})
 
