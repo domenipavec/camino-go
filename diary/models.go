@@ -8,12 +8,12 @@ import (
 
 type DiaryEntry struct {
 	gorm.Model
-	Title      string
-	Text       string `gorm:"type:text"`
-	Author     authorization.User
-	AuthorID   uint
-	Comments   []Comment
-	MapEntry   maps.MapEntry
+	Title      string             `valid:"required"`
+	Text       string             `gorm:"type:text" valid:"required"`
+	Author     authorization.User `valid:"-"`
+	AuthorID   uint               `valid:"required"`
+	Comments   []Comment          `valid:"-"`
+	MapEntry   maps.MapEntry      `valid:"-"`
 	MapEntryID uint
 
 	NumComments uint `gorm:"-"`

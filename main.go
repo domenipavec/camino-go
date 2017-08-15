@@ -1,15 +1,18 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/flosch/pongo2"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/gobuffalo/packr"
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -102,16 +105,33 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.StripSlashes)
-	r.Use(middleware.WithValue("store", store))
+	r.Use(middleware.WithValue("store", store)) // TODO: do we need this anywhere?
 	r.Use(Authorization.Middleware)
 
-	r.Mount("/admin", app.Resources.ServeMux())
+	r.Mount("/admin", app.Resources.ServeMux()) // TODO: figure out if this uses some sort of csrf
 	r.Mount("/auth", app.Authentication.ServeMux())
 
-	r.Mount("/diary", Diary.ServeMux())
-	r.Mount("/", Diary.ServeMux())
-	r.Mount("/links", Links.ServeMux())
-	r.Mount("/camino", CaminoPage.ServeMux())
+	r.Group(func(r chi.Router) { // web is protected with csrf
+		// TODO: move csrf stuff to gongo package
+		app.Render.AddContextFunc(func(r *http.Request, ctx gongo.Context) {
+			// TODO: add safe value to render
+			ctx["csrf_token"] = pongo2.AsSafeValue(csrf.TemplateField(r))
+		})
+		r.Use(csrf.Protect(
+			[]byte("01234567890123456789012345678901"),
+			csrf.HttpOnly(true),
+			csrf.Secure(isProd),
+			csrf.FieldName("csrfmiddlewaretoken"),
+			csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				app.Render.Error(w, r, errors.New("Forbidden")) // TODO: move this handler to render
+			})),
+		)) // TODO: pass as param and generate in generator
+
+		r.Mount("/diary", Diary.ServeMux())
+		r.Mount("/", Diary.ServeMux())
+		r.Mount("/links", Links.ServeMux())
+		r.Mount("/camino", CaminoPage.ServeMux())
+	})
 
 	r.Mount("/static", http.StripPrefix("/static", http.FileServer(packr.NewBox("./static"))))
 
