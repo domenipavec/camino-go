@@ -64,7 +64,7 @@ func (c *Diary) ServeMux() http.Handler {
 func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	var entry DiaryEntry
 
-	if err := c.DB.First(&entry, chi.URLParam(r, "diaryID")).Error; err != nil {
+	if err := c.DB.Preload("Author").First(&entry, chi.URLParam(r, "diaryID")).Error; err != nil {
 		c.render.Error(w, r, err)
 	}
 
