@@ -3,7 +3,7 @@
     {% if entry.CreatedAt != entry.UpdatedAt %}
         <p><b>Urejeno:</b> {{ entry.UpdatedAt | date:"2. 1. 2006 ob 15:04" }},</p>
     {% endif %}
-    {% if entry.NumComments %}
+    {% if entries %}
         <p><b>Avtor:</b> {{ entry.Author.DisplayName() }},</p>
         <p><b>Komentarjev: </b> {{ entry.NumComments }}</p>
     {% elif entry.GpsDataID %}

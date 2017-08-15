@@ -4,11 +4,11 @@
 
 {% block content %}
 <div class="row">
-    {% if entry.MapEntryID %}
-        <div class="col-xs-12 col-sm-8">
-    {% else %}
-        <div class="col-xs-12 col-sm-12">
-    {% endif %}
+{% if entry.MapEntryID %}
+    <div class="col-xs-12 col-sm-8">
+{% else %}
+    <div class="col-xs-12 col-sm-12">
+{% endif %}
 
     {% include "diary_header.html" %}
 
@@ -24,48 +24,45 @@
                     </a>
                 <?php endforeach; ?>
             </div>
-        <?php endif; ?>
+        <?php endif; ?> -->
 
-        <ul class="diary-comments">
-            <?php $i = 1; ?>
-            <?php if ($comments): ?>
-                <?php foreach ($comments as $comment): ?>
-                    <?php if ($i % 2 == 0): ?>
-                        <li class="even">
-                    <?php else: ?>
-                        <li class="odd">
-                    <?php endif; ?>
-
-                    <?=$comment->Comment; ?>
-
-                    <p class="info"><?=Date2Slo($comment->Posted); ?> od <?=$comment->Name; ?></p>
-
-                    </li>
-                    <?php $i++; ?>
-                <?php endforeach; ?>
-            <?php endif; ?>
-
-            <?php if ($i % 2 == 0): ?>
+    <ul class="diary-comments">
+        {% for comment in entry.Comments %}
+            {% if forloop.Counter % 2 == 0 %}
                 <li class="even">
-            <?php else: ?>
+            {% else %}
                 <li class="odd">
-            <?php endif; ?>
-            <?php if ($canComment): ?>
-                <?=form_open('diary/comment/'.$ID); ?>
-                    <div class="form-group">
-                        <textarea class="form-control" name="comment" id="comment" placeholder="Vpišite vaše sporočilo." required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Sporoči!</button>
-                <?=form_close(); ?>
-            <?php else: ?>
-                <p>Za komentiranje se prijavite:</p>
-                <h4><a href="#" class="glogin-button" title="Prijavite se z Google+!">Prijava!</a></h4>
-            <?php endif; ?>
-            </li>
-        </ul>
-    </div>
+            {% endif %}
+                {{ comment.Comment|striptags|escape|linebreaks|safe }}
 
-    <?php if ($MapID): ?>
+                <p class="info">
+                    {{ comment.CreatedAt | date:"2. 1. 2006 ob 15:04" }}
+                    od {{ comment.Author.DisplayName() }}
+                </p>
+            </li>
+        {% endfor %}
+
+        <!-- <?php if ($i % 2 == 0): ?>
+            <li class="even">
+        <?php else: ?>
+            <li class="odd">
+        <?php endif; ?>
+        <?php if ($canComment): ?>
+            <?=form_open('diary/comment/'.$ID); ?>
+                <div class="form-group">
+                    <textarea class="form-control" name="comment" id="comment" placeholder="Vpišite vaše sporočilo." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Sporoči!</button>
+            <?=form_close(); ?>
+        <?php else: ?>
+            <p>Za komentiranje se prijavite:</p>
+            <h4><a href="#" class="glogin-button" title="Prijavite se z Google+!">Prijava!</a></h4>
+        <?php endif; ?>
+        </li> -->
+    </ul>
+</div>
+
+    <!-- <?php if ($MapID): ?>
         <div class="col-xs-12 col-sm-4">
             <a href="<?=base_url('map'); ?>?index=<?=$MapGroupID; ?>&marker=<?=$MapID; ?>" title="<?=$City; ?>">
                 <img class="styled img-responsive" src="//maps.googleapis.com/maps/api/staticmap?center=42,-5&zoom=6&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C<?=$lat; ?>,<?=$lon; ?>&sensor=false&key=<?=$browser_key; ?>" alt="<?=$City; ?>">

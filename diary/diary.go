@@ -44,6 +44,7 @@ func (c *Diary) Configure(app gongo.App) error {
 func (c Diary) Resources() []interface{} {
 	return []interface{}{
 		&DiaryEntry{},
+		&Comment{},
 	}
 }
 
@@ -64,7 +65,14 @@ func (c *Diary) ServeMux() http.Handler {
 func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	var entry DiaryEntry
 
-	if err := c.DB.Preload("Author").First(&entry, chi.URLParam(r, "diaryID")).Error; err != nil {
+	query := c.DB.Preload("Author").
+		Preload("Comments", func(db *gorm.DB) *gorm.DB {
+			return db.Order("comments.created_at desc")
+		}).
+		Preload("Comments.Author").
+		First(&entry, chi.URLParam(r, "diaryID"))
+
+	if err := query.Error; err != nil {
 		c.render.Error(w, r, err)
 	}
 
@@ -76,12 +84,32 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
-	query := c.DB.Model(&DiaryEntry{}).Preload("Author").
+	yearStr := r.URL.Query().Get("year")
+
+	// show latest year on main page
+	if r.URL.Path == "/" {
+		var year []int
+		query := c.DB.Model(&DiaryEntry{}).
+			Select("DISTINCT date_part('year', created_at) as year").
+			Order("year desc").
+			Limit(1).
+			Pluck("year", &year)
+		if query.Error != nil {
+			c.render.Error(w, r, query.Error)
+			return
+		}
+		yearStr = strconv.Itoa(year[0])
+	}
+
+	query := c.DB.Model(&DiaryEntry{}).
+		Select("*").
+		Joins("natural left join (select diary_entry_id as id, count(*) as num_comments from comments group by diary_entry_id) c").
+		Preload("Author").
 		Order("created_at desc")
 
 	var yearItf interface{}
-	if r.URL.Query().Get("year") != "" {
-		year, err := strconv.Atoi(r.URL.Query().Get("year"))
+	if yearStr != "" {
+		year, err := strconv.Atoi(yearStr)
 		if err != nil {
 			c.render.Error(w, r, errors.Wrap(err, "invalid year"))
 			return
