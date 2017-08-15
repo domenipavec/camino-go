@@ -8,6 +8,7 @@ import (
 	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/gongo"
+	"github.com/matematik7/gongo/authorization"
 	"github.com/pkg/errors"
 )
 
@@ -45,6 +46,7 @@ func (c Diary) Resources() []interface{} {
 	return []interface{}{
 		&DiaryEntry{},
 		&Comment{},
+		&EntryUserRead{},
 	}
 }
 
@@ -57,9 +59,50 @@ func (c *Diary) ServeMux() http.Handler {
 
 	router.Get("/", c.ListHandler)
 
+	router.Get("/read", c.ReadHandler)
+
 	router.Get("/{diaryID:[0-9]+}", c.ViewHandler)
 
 	return router
+}
+
+func (c *Diary) ReadHandler(w http.ResponseWriter, r *http.Request) {
+	userItf := r.Context().Value("user")
+	if userItf == nil {
+		//TODO: Add forbidden and not found to render
+		c.render.Error(w, r, errors.New("Forbidden"))
+		return
+	}
+	user := userItf.(authorization.User)
+
+	// TODO mark everything as read on user register
+	if err := c.DB.Model(&EntryUserRead{}).Where("user_id = ?", user.ID).Update("updated_at", "NOW()").Error; err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	query := c.DB.Debug().Exec(
+		`INSERT INTO entry_user_reads
+		(created_at, updated_at, diary_entry_id, user_id)
+		(
+			SELECT NOW(), NOW(), id, ?
+			FROM diary_entries
+			LEFT JOIN (
+				SELECT 1 as already_exists, diary_entry_id
+				FROM entry_user_reads
+				WHERE user_id = ?
+			) ae ON ae.diary_entry_id = diary_entries.id
+			WHERE ae.already_exists IS DISTINCT FROM 1
+		)`,
+		user.ID,
+		user.ID,
+	)
+	if query.Error != nil {
+		c.render.Error(w, r, query.Error)
+		return
+	}
+
+	http.Redirect(w, r, r.Referer(), http.StatusFound)
 }
 
 func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
@@ -74,6 +117,28 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := query.Error; err != nil {
 		c.render.Error(w, r, err)
+		return
+	}
+
+	// Mark as read if logged in
+	if user := r.Context().Value("user"); user != nil {
+		user := user.(authorization.User)
+
+		entryUserRead := EntryUserRead{
+			DiaryEntryID: entry.ID,
+			UserID:       user.ID,
+		}
+
+		query := c.DB.First(&entryUserRead, entryUserRead)
+		if !query.RecordNotFound() && query.Error != nil {
+			c.render.Error(w, r, query.Error)
+			return
+		}
+
+		if err := c.DB.Save(&entryUserRead).Error; err != nil {
+			c.render.Error(w, r, err)
+			return
+		}
 	}
 
 	context := gongo.Context{
@@ -106,6 +171,28 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 		Joins("natural left join (select diary_entry_id as id, count(*) as num_comments from comments group by diary_entry_id) c").
 		Preload("Author").
 		Order("created_at desc")
+
+	// get new status for user if logged in
+	if user := r.Context().Value("user"); user != nil {
+		user := user.(authorization.User)
+
+		query = query.Joins(
+			`natural left join (
+				SELECT
+					entry_user_reads.diary_entry_id as id,
+					true as viewed,
+					rc.created_at > entry_user_reads.updated_at as new_comments
+				FROM entry_user_reads
+				LEFT JOIN (
+					SELECT diary_entry_id, MAX(created_at) as created_at
+					FROM comments
+					GROUP BY diary_entry_id
+				) rc ON rc.diary_entry_id = entry_user_reads.diary_entry_id
+				WHERE user_id = ?
+			) r`,
+			user.ID,
+		)
+	}
 
 	var yearItf interface{}
 	if yearStr != "" {

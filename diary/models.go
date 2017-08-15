@@ -8,14 +8,17 @@ import (
 
 type DiaryEntry struct {
 	gorm.Model
-	Title       string
-	Text        string `gorm:"type:text"`
-	Author      authorization.User
-	AuthorID    uint
-	Comments    []Comment
-	MapEntry    maps.MapEntry
-	MapEntryID  uint
+	Title      string
+	Text       string `gorm:"type:text"`
+	Author     authorization.User
+	AuthorID   uint
+	Comments   []Comment
+	MapEntry   maps.MapEntry
+	MapEntryID uint
+
 	NumComments uint `gorm:"-"`
+	Viewed      bool `gorm:"-"`
+	NewComments bool `gorm:"-"`
 }
 
 type Comment struct {
@@ -24,4 +27,10 @@ type Comment struct {
 	Comment      string `gorm:"type:text"`
 	Author       authorization.User
 	AuthorID     uint
+}
+
+type EntryUserRead struct {
+	gorm.Model
+	DiaryEntryID uint
+	UserID       uint
 }

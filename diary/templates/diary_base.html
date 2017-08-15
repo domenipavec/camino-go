@@ -17,5 +17,12 @@
             <li class="active">{{ entry.Title }}</li>
         {% endif %}
     {% endif %}
+
+    {% if entries and user %}
+        <a class="btn btn-default btn-xs pull-right" href="/diary/read" role="button" title="Označi vse kot prebrano">
+            <i class="fa fa-check"></i>
+            Prebrano
+        </a>
+    {% endif %}
 </ol>
 {% endblock %}

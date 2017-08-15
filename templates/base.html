@@ -18,6 +18,9 @@
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
     <link rel="stylesheet" href="/static/style.css">
+
+    <script defer src="/static/js/solid.min.js"></script>
+    <script defer src="/static/js/fontawesome.min.js"></script>
   </head>
   <body>
 <div class="container container-body">
@@ -57,10 +60,10 @@
             </ul>
             <ul class="nav navbar-nav navbar-right">
                 {% if user %}
-                    <li class="navbar-text">{{ user.DisplayName() }}</li>
-                    <li><a href="/auth/gplus/logout">Odjavi!</a></li>
+                    <li class="navbar-text"><i class="fa fa-user-circle"></i> {{ user.DisplayName() }}</li>
+                    <li><a href="/auth/gplus/logout"><i class="fa fa-sign-out"></i> Odjavi</a></li>
                 {% else %}
-                    <li><a href="/auth/gplus" title="Prijavite se z Google+!">Prijava!</a></li>
+                    <li><a href="/auth/gplus" title="Prijavite se z Google+!">Prijava <i class="fa fa-sign-in"></i></a></li>
                 {% endif %}
             </ul>
         </div><!--/.nav-collapse -->

@@ -9,11 +9,10 @@
         <h3 class="clear">
             <a class="title-link" href="/diary/{{ entry.ID }}" title="Preberi več">
 				{{ entry.Title }}
-				{% if entry.Unread %}
-                    <span class="label label-danger">Novo</span>
-				{% endif %}
-				{% if entry.NewComments %}
-                    <span class="label label-danger">Novi komentarji</span>
+				{% if not entry.Viewed %}
+                    <span class="label label-info"><i class="fa fa-bell"></i> Novo</span>
+				{% elif entry.NewComments %}
+                    <span class="label label-info"><i class="fa fa-bell"></i> Novi komentarji</span>
 				{% endif %}
             </a>
         </h3>
