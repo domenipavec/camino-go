@@ -106,7 +106,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(middleware.Recoverer) // TODO: proper error page
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware.WithValue("store", store)) // TODO: do we need this anywhere?
 	r.Use(Authorization.Middleware)
@@ -141,6 +141,7 @@ func main() {
 
 	//TODO: Move these handlers to render
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
 		app.Render.Template(w, r, "error.html", gongo.Context{
 			"title": "Not Found",
 			"msg":   "This is not the web page you are looking for.",
@@ -148,6 +149,7 @@ func main() {
 	})
 
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		app.Render.Template(w, r, "error.html", gongo.Context{
 			"title": "Method Not Allowed",
 			"msg":   "Your position's correct, except... not this method.",
