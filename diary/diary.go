@@ -12,6 +12,8 @@ import (
 	"github.com/matematik7/gongo/authorization"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+
+	"github.com/matematik7/camino-go/diary/models"
 )
 
 const PerPage = 10
@@ -34,7 +36,7 @@ func (c *Diary) Configure(app gongo.App) error {
 	c.render.AddContextFunc(func(r *http.Request, ctx gongo.Context) {
 		var years []int
 		// TODO: add error handling
-		c.DB.Model(&DiaryEntry{}).
+		c.DB.Model(&models.DiaryEntry{}).
 			Select("DISTINCT date_part('year', created_at) as year").
 			Order("year desc").
 			Pluck("year", &years)
@@ -46,9 +48,9 @@ func (c *Diary) Configure(app gongo.App) error {
 
 func (c Diary) Resources() []interface{} {
 	return []interface{}{
-		&DiaryEntry{},
-		&Comment{},
-		&EntryUserRead{},
+		&models.DiaryEntry{},
+		&models.Comment{},
+		&models.EntryUserRead{},
 	}
 }
 
@@ -80,7 +82,7 @@ func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	user := userItf.(authorization.User)
 
-	diaryEntry := DiaryEntry{}
+	diaryEntry := models.DiaryEntry{}
 	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
 	if query.RecordNotFound() {
 		// TODO: add not found to render
@@ -91,7 +93,7 @@ func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comment := Comment{
+	comment := models.Comment{
 		DiaryEntryID: diaryEntry.ID,
 		AuthorID:     user.ID,
 		Comment:      r.FormValue("comment"),
@@ -121,7 +123,7 @@ func (c *Diary) ReadHandler(w http.ResponseWriter, r *http.Request) {
 	user := userItf.(authorization.User)
 
 	// TODO mark everything as read on user register
-	if err := c.DB.Model(&EntryUserRead{}).Where("user_id = ?", user.ID).Update("updated_at", "NOW()").Error; err != nil {
+	if err := c.DB.Model(&models.EntryUserRead{}).Where("user_id = ?", user.ID).Update("updated_at", "NOW()").Error; err != nil {
 		c.render.Error(w, r, err)
 		return
 	}
@@ -151,7 +153,7 @@ func (c *Diary) ReadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
-	var entry DiaryEntry
+	var entry models.DiaryEntry
 
 	query := c.DB.Preload("Author").
 		Preload("Comments", func(db *gorm.DB) *gorm.DB {
@@ -170,7 +172,7 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	if user := r.Context().Value("user"); user != nil {
 		user := user.(authorization.User)
 
-		entryUserRead := EntryUserRead{
+		entryUserRead := models.EntryUserRead{
 			DiaryEntryID: entry.ID,
 			UserID:       user.ID,
 		}
@@ -201,7 +203,7 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 	// show latest year on main page
 	if r.URL.Path == "/" {
 		var year []int
-		query := c.DB.Model(&DiaryEntry{}).
+		query := c.DB.Model(&models.DiaryEntry{}).
 			Select("DISTINCT date_part('year', created_at) as year").
 			Order("year desc").
 			Limit(1).
@@ -213,7 +215,7 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 		yearStr = strconv.Itoa(year[0])
 	}
 
-	query := c.DB.Model(&DiaryEntry{}).
+	query := c.DB.Model(&models.DiaryEntry{}).
 		Select("*").
 		Joins(
 			`natural left join (
@@ -284,7 +286,7 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 	nextOffset := offset + PerPage
 	prevOffset := offset - PerPage
 
-	var entries []DiaryEntry
+	var entries []models.DiaryEntry
 	if err := query.Limit(PerPage).Find(&entries).Error; err != nil {
 		c.render.Error(w, r, err)
 		return

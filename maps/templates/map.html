@@ -37,6 +37,9 @@ var gpsData = {
                         <!-- <?php if($city->DiaryID): ?>
                             - Preberi v dnevniku: <?=anchor('diary/show/' . $city->DiaryID, $city->Title); ?>
                         <?php endif; ?> -->
+                        {% if entry.DiaryEntry %}
+                            - Preberi v dnevniku: <a href="/diary/{{ entry.DiaryEntry.ID }}">{{ entry.DiaryEntry.Title }}</a>
+                        {% endif %}
                         {% if entry.Description %}
                             - {{ entry.Description }}
                         {% endif %}

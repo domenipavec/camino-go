@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
+	"github.com/matematik7/camino-go/diary/models"
 	"github.com/matematik7/gongo"
 	"github.com/spf13/viper"
 )
@@ -30,9 +31,9 @@ func (c *Maps) Configure(app gongo.App) error {
 
 func (c Maps) Resources() []interface{} {
 	return []interface{}{
-		&MapEntry{},
-		&MapGroup{},
-		&GpsData{},
+		&models.MapEntry{},
+		&models.MapGroup{},
+		&models.GpsData{},
 	}
 }
 
@@ -49,15 +50,15 @@ func (c *Maps) ServeMux() http.Handler {
 }
 
 func (c *Maps) ViewHandler(w http.ResponseWriter, r *http.Request) {
-	var groups []MapGroup
+	var groups []models.MapGroup
 
-	query := c.DB.Preload("Entries").Order("id desc").Find(&groups)
+	query := c.DB.Preload("Entries.DiaryEntry").Order("id desc").Find(&groups)
 	if err := query.Error; err != nil {
 		c.render.Error(w, r, err)
 		return
 	}
 
-	var gpsData []GpsData
+	var gpsData []models.GpsData
 	if err := c.DB.Find(&gpsData).Error; err != nil {
 		c.render.Error(w, r, err)
 		return

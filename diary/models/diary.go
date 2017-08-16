@@ -1,8 +1,7 @@
-package diary
+package models
 
 import (
 	"github.com/jinzhu/gorm"
-	"github.com/matematik7/camino-go/maps"
 	"github.com/matematik7/gongo/authorization"
 )
 
@@ -13,7 +12,7 @@ type DiaryEntry struct {
 	Author     authorization.User `valid:"-"`
 	AuthorID   uint               `valid:"required"`
 	Comments   []Comment          `valid:"-"`
-	MapEntry   maps.MapEntry      `valid:"-"`
+	MapEntry   MapEntry           `valid:"-"`
 	MapEntryID uint
 
 	NumComments uint `gorm:"-"`

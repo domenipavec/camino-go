@@ -44,6 +44,7 @@ $(function () {
             $('.map-gray-icon', map_group).css('display', 'inline').hide();
         }
         mapApp.markers[index] = {};
+        mapApp.polylines[index] = {};
 
         $('a', map_group).click(function () {
             $('.map-color-icon', map_group).toggle();
@@ -53,6 +54,9 @@ $(function () {
 
             $.each(mapApp.markers[index], function (id, marker) {
                 marker.setVisible(!marker.getVisible());
+            });
+            $.each(mapApp.polylines[index], function (id, polyline) {
+                polyline.setVisible(!polyline.getVisible());
             });
 
             fitToMarkers();
@@ -190,6 +194,12 @@ function initializeMap () {
 
             // set map
             polyline.setMap(mapApp.map);
+
+            if (groupIndex !== mapApp.defaultIndex) {
+                polyline.setVisible(false);
+            }
+
+            mapApp.polylines[groupIndex][markerId] = polyline;
 
             // fit map if on map id
             if (!bounds.isEmpty()) {

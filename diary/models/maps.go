@@ -1,4 +1,4 @@
-package maps
+package models
 
 import (
 	"time"
@@ -16,6 +16,8 @@ type MapEntry struct {
 	Lat         float64
 	GpsData     GpsData
 	GpsDataID   uint
+
+	DiaryEntry *DiaryEntry
 }
 
 type MapGroup struct {
