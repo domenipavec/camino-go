@@ -18,6 +18,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/matematik7/camino-go/diary"
 	"github.com/matematik7/camino-go/links"
+	"github.com/matematik7/camino-go/maps"
 	"github.com/matematik7/camino-go/pages"
 	"github.com/matematik7/gongo"
 	"github.com/matematik7/gongo/authentication"
@@ -77,6 +78,7 @@ func main() {
 	Links := links.New()
 	CaminoPage := pages.New(1)
 	Diary := diary.New()
+	Maps := maps.New()
 
 	app := gongo.App{
 		Authentication: Authentication,
@@ -89,6 +91,7 @@ func main() {
 			Diary,
 			Links,
 			CaminoPage,
+			Maps,
 		},
 	}
 
@@ -131,6 +134,7 @@ func main() {
 		r.Mount("/", Diary.ServeMux())
 		r.Mount("/links", Links.ServeMux())
 		r.Mount("/camino", CaminoPage.ServeMux())
+		r.Mount("/map", Maps.ServeMux())
 	})
 
 	r.Mount("/static", http.StripPrefix("/static", http.FileServer(packr.NewBox("./static"))))

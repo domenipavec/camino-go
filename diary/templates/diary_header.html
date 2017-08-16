@@ -1,15 +1,36 @@
 <div class="diary-entry-footer">
-    <p title="Ustvarjeno"><b class="sr-only">Ustvarjeno:</b><i class="fa fa-file"></i> {{ entry.CreatedAt | date:"2. 1. 2006 ob 15:04" }}</p>
+    <p title="Ustvarjeno">
+        <b class="sr-only">Ustvarjeno:</b>
+        <i class="fa fa-file"></i> {{ entry.CreatedAt | date:"2. 1. 2006 ob 15:04" }}
+    </p>
     {% if entry.CreatedAt != entry.UpdatedAt %}
-        <p title="Urejeno"><b class="sr-only">Urejeno:</b><i class="fa fa-file-edit"></i> {{ entry.UpdatedAt | date:"2. 1. 2006 ob 15:04" }}</p>
+        <p title="Urejeno">
+            <b class="sr-only">Urejeno:</b>
+            <i class="fa fa-file-edit"></i> {{ entry.UpdatedAt | date:"2. 1. 2006 ob 15:04" }}
+        </p>
     {% endif %}
-    <p title="Avtor"><b class="sr-only">Avtor:</b><i class="fa fa-user"></i> {{ entry.Author.DisplayName() }}</p>
+    <p title="Avtor">
+        <b class="sr-only">Avtor:</b>
+        <i class="fa fa-user"></i> {{ entry.Author.DisplayName() }}
+    </p>
     {% if entries %}
-        <p title="Število komentarjev"><b class="sr-only">Komentarjev:</b><i class="fa fa-comments"></i> {{ entry.NumComments }}</p>
-    {% elif entry.GpsDataID %}
-        <p><b>Izhodišče:</b> {{ entry.Start }},</p>
-        <p><b>Cilj:</b> {{ entry.End }},</p>
-        <p><b>Razdalja:</b> {{ entry.Distance }} km</p>
+        <p title="Število komentarjev">
+            <b class="sr-only">Komentarjev:</b>
+            <i class="fa fa-comments"></i> {{ entry.NumComments }}
+        </p>
+    {% elif entry.MapEntryID and entry.MapEntry.GpsDataID %}
+        <p title="Izhodišče">
+            <b class="sr-only">Izhodišče:</b>
+            <i class="fa fa-arrow-from-left"></i> {{ entry.MapEntry.GpsData.Start }}
+         </p>
+        <p title="Cilj">
+            <b class="sr-only">Cilj:</b>
+            <i class="fa fa-arrow-to-right"></i> {{ entry.MapEntry.GpsData.End }}
+         </p>
+        <p title="Razdalja">
+            <b class="sr-only">Razdalja:</b>
+            <i class="fa fa-arrows-h"></i> {{ entry.MapEntry.GpsData.Length|floatformat }} km
+         </p>
     {% endif %}
     <div class="clear"></div>
 </div>

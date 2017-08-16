@@ -11,6 +11,7 @@ import (
 	"github.com/matematik7/gongo"
 	"github.com/matematik7/gongo/authorization"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 const PerPage = 10
@@ -157,6 +158,7 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 			return db.Order("comments.created_at desc")
 		}).
 		Preload("Comments.Author").
+		Preload("MapEntry.GpsData").
 		First(&entry, chi.URLParam(r, "diaryID"))
 
 	if err := query.Error; err != nil {
@@ -186,7 +188,8 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	context := gongo.Context{
-		"entry": entry,
+		"entry":       entry,
+		"browser_key": viper.GetString("GMAP_BROWSER_KEY"),
 	}
 
 	c.render.Template(w, r, "diary_one.html", context)
