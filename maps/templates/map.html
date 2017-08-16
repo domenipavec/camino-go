@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Zemljevid{% endblock %}
+
+{% block content %}
+
+<script src="/static/js/map.js"></script>
+<script type="text/javascript">
+var browser_key = "{{ browser_key }}";
+var gpsData = {
+{% for element in gps_data %}
+    {{ element.ID }}: {{ element.Data|safe }},
+{% endfor %}
+};
+</script>
+
+<div class="row">
+    <div class="col-xs-12 col-sm-10">
+        <div class="map"></div>
+    </div>
+
+    <div class="col-xs-12 col-sm-2">
+    {% for group in groups %}
+        <div class="map-group" id="map-group-{{ group.ID }}">
+            <a href="#">
+                <h3>
+                    <img src="//chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|{{ group.Color }}" class="map-marker map-color-icon">
+                    <img src="//chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|dfdfdf" class="map-marker map-gray-icon">
+                    {{ group.Name }}
+                </h3>
+            </a>
+
+            <ul rel="{{ group.ID }}" class="map-list">
+                {% for entry in group.Entries %}
+                    <li data-lon="{{ entry.Lon }}" data-lat="{{ entry.Lat }}" data-id="{{ entry.ID }}" data-gps="{{ entry.GpsDataID }}">
+                        <strong>{{ entry.City }}</strong>
+                        <!-- <?php if($city->DiaryID): ?>
+                            - Preberi v dnevniku: <?=anchor('diary/show/' . $city->DiaryID, $city->Title); ?>
+                        <?php endif; ?> -->
+                        {% if entry.Description %}
+                            - {{ entry.Description }}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

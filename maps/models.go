@@ -22,6 +22,8 @@ type MapGroup struct {
 	gorm.Model
 	Name  string
 	Color string
+
+	Entries []MapEntry
 }
 
 type GpsData struct {
