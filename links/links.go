@@ -6,11 +6,12 @@ import (
 	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/gongo"
+	"github.com/matematik7/gongo/render"
 )
 
 type Links struct {
 	DB     *gorm.DB
-	render gongo.Render
+	render *render.Render
 }
 
 func New() *Links {
@@ -18,8 +19,8 @@ func New() *Links {
 }
 
 func (l *Links) Configure(app gongo.App) error {
-	l.DB = app.DB
-	l.render = app.Render
+	l.DB = app["DB"].(*gorm.DB)
+	l.render = app["Render"].(*render.Render)
 
 	l.render.AddTemplates(packr.NewBox("./templates"))
 
@@ -32,14 +33,6 @@ func (l Links) Resources() []interface{} {
 	}
 }
 
-func (l Links) Name() string {
-	return "Links"
-}
-
-func (l *Links) ServeMux() http.Handler {
-	return l
-}
-
 func (l *Links) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var allLinks []Link
 	if err := l.DB.Find(&allLinks).Error; err != nil {
@@ -47,7 +40,7 @@ func (l *Links) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	context := gongo.Context{
+	context := render.Context{
 		"links": allLinks,
 	}
 

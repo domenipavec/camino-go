@@ -6,11 +6,12 @@ import (
 	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/gongo"
+	"github.com/matematik7/gongo/render"
 )
 
 type Pages struct {
 	DB     *gorm.DB
-	render gongo.Render
+	render *render.Render
 
 	id int
 }
@@ -22,8 +23,8 @@ func New(id int) *Pages {
 }
 
 func (l *Pages) Configure(app gongo.App) error {
-	l.DB = app.DB
-	l.render = app.Render
+	l.DB = app["DB"].(*gorm.DB)
+	l.render = app["Render"].(*render.Render)
 
 	l.render.AddTemplates(packr.NewBox("./templates"))
 
@@ -36,14 +37,6 @@ func (l Pages) Resources() []interface{} {
 	}
 }
 
-func (l Pages) Name() string {
-	return "Pages"
-}
-
-func (l *Pages) ServeMux() http.Handler {
-	return l
-}
-
 func (l *Pages) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var page Page
 	if err := l.DB.First(&page, l.id).Error; err != nil {
@@ -51,7 +44,7 @@ func (l *Pages) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	context := gongo.Context{
+	context := render.Context{
 		"page": page,
 	}
 

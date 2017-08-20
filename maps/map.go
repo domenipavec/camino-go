@@ -8,12 +8,13 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/camino-go/diary/models"
 	"github.com/matematik7/gongo"
+	"github.com/matematik7/gongo/render"
 	"github.com/spf13/viper"
 )
 
 type Maps struct {
 	DB     *gorm.DB
-	render gongo.Render
+	render *render.Render
 }
 
 func New() *Maps {
@@ -21,8 +22,8 @@ func New() *Maps {
 }
 
 func (c *Maps) Configure(app gongo.App) error {
-	c.DB = app.DB
-	c.render = app.Render
+	c.DB = app["DB"].(*gorm.DB)
+	c.render = app["Render"].(*render.Render)
 
 	c.render.AddTemplates(packr.NewBox("./templates"))
 
@@ -35,10 +36,6 @@ func (c Maps) Resources() []interface{} {
 		&models.MapGroup{},
 		&models.GpsData{},
 	}
-}
-
-func (c Maps) Name() string {
-	return "Maps"
 }
 
 func (c *Maps) ServeMux() http.Handler {
@@ -64,7 +61,7 @@ func (c *Maps) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	context := gongo.Context{
+	context := render.Context{
 		"groups":      groups,
 		"gps_data":    gpsData,
 		"browser_key": viper.GetString("GMAP_BROWSER_KEY"),

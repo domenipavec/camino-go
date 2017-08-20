@@ -1,13 +1,13 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/flosch/pongo2"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -21,10 +21,13 @@ import (
 	"github.com/matematik7/camino-go/maps"
 	"github.com/matematik7/camino-go/pages"
 	"github.com/matematik7/gongo"
+	"github.com/matematik7/gongo/admin"
 	"github.com/matematik7/gongo/authentication"
 	"github.com/matematik7/gongo/authorization"
+	"github.com/matematik7/gongo/files"
+	"github.com/matematik7/gongo/files/storage/s3storage"
 	"github.com/matematik7/gongo/render"
-	"github.com/matematik7/gongo/resources"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -71,36 +74,50 @@ func main() {
 	Authentication := authentication.New(url + "/auth")
 	Authorization := authorization.New()
 	Render := render.New(isProd)
-	Resources := resources.New("/admin")
+	Admin := admin.New("/admin")
+
+	s3session, err := session.NewSession()
+	if err != nil {
+		log.Fatal(err)
+	}
+	Storage, err := s3storage.New(s3session, "images-camino", false)
+	if err != nil {
+		log.Fatal(err)
+	}
+	Files := files.New(Storage)
 
 	Render.AddTemplates(packr.NewBox("./templates"))
 
+	Diary := diary.New()
 	Links := links.New()
 	CaminoPage := pages.New(1)
-	Diary := diary.New()
 	Maps := maps.New()
 
 	app := gongo.App{
-		Authentication: Authentication,
-		Authorization:  Authorization,
-		DB:             DB,
-		Render:         Render,
-		Resources:      Resources,
-		Store:          store,
-		Controllers: []gongo.Controller{
-			Diary,
-			Links,
-			CaminoPage,
-			Maps,
-		},
+		"Admin":          Admin,
+		"Authentication": Authentication,
+		"Authorization":  Authorization,
+		"DB":             DB,
+		"Files":          Files,
+		"Render":         Render,
+		"Store":          store,
+
+		"Diary":      Diary,
+		"Links":      Links,
+		"CaminoPage": CaminoPage,
+		"Maps":       Maps,
 	}
 
 	if err := app.Configure(); err != nil {
 		log.Fatalln(err)
 	}
 
-	if err := app.RegisterResources(); err != nil {
-		log.Fatalln(err)
+	for _, itf := range app {
+		if resourcer, ok := itf.(gongo.Resourcer); ok {
+			if err := DB.AutoMigrate(resourcer.Resources()...).Error; err != nil {
+				log.Fatal(errors.Wrap(err, "could not auto migrate models"))
+			}
+		}
 	}
 
 	r := chi.NewRouter()
@@ -111,12 +128,12 @@ func main() {
 	r.Use(middleware.WithValue("store", store)) // TODO: do we need this anywhere?
 	r.Use(Authorization.Middleware)
 
-	r.Mount("/admin", app.Resources.ServeMux()) // TODO: figure out if this uses some sort of csrf
-	r.Mount("/auth", app.Authentication.ServeMux())
+	r.Mount("/admin", Admin.ServeMux()) // TODO: figure out if this uses some sort of csrf
+	r.Mount("/auth", Authentication.ServeMux())
 
 	r.Group(func(r chi.Router) { // web is protected with csrf
 		// TODO: move csrf stuff to gongo package
-		app.Render.AddContextFunc(func(r *http.Request, ctx gongo.Context) {
+		Render.AddContextFunc(func(r *http.Request, ctx render.Context) {
 			// TODO: add safe value to render
 			ctx["csrf_token"] = pongo2.AsSafeValue(csrf.TemplateField(r))
 		})
@@ -126,14 +143,14 @@ func main() {
 			csrf.Secure(isProd),
 			csrf.FieldName("csrfmiddlewaretoken"),
 			csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				app.Render.Error(w, r, errors.New("Forbidden")) // TODO: move this handler to render
+				Render.Error(w, r, errors.New("Forbidden")) // TODO: move this handler to render
 			})),
 		)) // TODO: pass as param and generate in generator
 
 		r.Mount("/diary", Diary.ServeMux())
 		r.Mount("/", Diary.ServeMux())
-		r.Mount("/links", Links.ServeMux())
-		r.Mount("/camino", CaminoPage.ServeMux())
+		r.Mount("/links", Links)
+		r.Mount("/camino", CaminoPage)
 		r.Mount("/map", Maps.ServeMux())
 	})
 
@@ -141,8 +158,8 @@ func main() {
 
 	//TODO: Move these handlers to render
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		http.NotFound(w, r)
-		app.Render.Template(w, r, "error.html", gongo.Context{
+		w.WriteHeader(http.StatusNotFound)
+		Render.Template(w, r, "error.html", render.Context{
 			"title": "Not Found",
 			"msg":   "This is not the web page you are looking for.",
 		})
@@ -150,7 +167,7 @@ func main() {
 
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		app.Render.Template(w, r, "error.html", gongo.Context{
+		Render.Template(w, r, "error.html", render.Context{
 			"title": "Method Not Allowed",
 			"msg":   "Your position's correct, except... not this method.",
 		})

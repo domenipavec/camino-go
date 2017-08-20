@@ -10,6 +10,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/gongo"
 	"github.com/matematik7/gongo/authorization"
+	"github.com/matematik7/gongo/files"
+	"github.com/matematik7/gongo/render"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
@@ -20,7 +22,8 @@ const PerPage = 10
 
 type Diary struct {
 	DB     *gorm.DB
-	render gongo.Render
+	render *render.Render
+	files  *files.Files
 }
 
 func New() *Diary {
@@ -28,12 +31,13 @@ func New() *Diary {
 }
 
 func (c *Diary) Configure(app gongo.App) error {
-	c.DB = app.DB
-	c.render = app.Render
+	c.DB = app["DB"].(*gorm.DB)
+	c.render = app["Render"].(*render.Render)
+	c.files = app["Files"].(*files.Files)
 
 	c.render.AddTemplates(packr.NewBox("./templates"))
 
-	c.render.AddContextFunc(func(r *http.Request, ctx gongo.Context) {
+	c.render.AddContextFunc(func(r *http.Request, ctx render.Context) {
 		var years []int
 		// TODO: add error handling
 		c.DB.Model(&models.DiaryEntry{}).
@@ -54,8 +58,15 @@ func (c Diary) Resources() []interface{} {
 	}
 }
 
-func (c Diary) Name() string {
-	return "Diary"
+func (c Diary) CanEdit(entry models.DiaryEntry, userItf interface{}) bool {
+	if userItf == nil {
+		return false
+	}
+	user := userItf.(authorization.User)
+	if user.HasPermissions("create_diary_entries") && entry.AuthorID == user.ID {
+		return true
+	}
+	return user.HasPermissions("update_diary_entries")
 }
 
 func (c *Diary) ServeMux() http.Handler {
@@ -189,9 +200,10 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	context := gongo.Context{
+	context := render.Context{
 		"entry":       entry,
 		"browser_key": viper.GetString("GMAP_BROWSER_KEY"),
+		"CanEdit":     c.CanEdit,
 	}
 
 	c.render.Template(w, r, "diary_one.html", context)
@@ -292,7 +304,7 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	context := gongo.Context{
+	context := render.Context{
 		"entries":    entries,
 		"offset":     offset,
 		"pages":      pages,
