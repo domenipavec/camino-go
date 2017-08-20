@@ -80,6 +80,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// TODO: make bucket configurable
 	Storage, err := s3storage.New(s3session, "images-camino", false)
 	if err != nil {
 		log.Fatal(err)

@@ -16,15 +16,15 @@
         {{ entry.Text }}
     {% endautoescape %}
 
-        <!-- <?php if ($Pictures[0]->Filename): ?>
-            <div class="diary-pictures">
-                <?php foreach ($Pictures as $Pic): ?>
-                    <a href="<?=base_url('/data/diary/' . $Pic->Filename); ?>" title="<?=$Pic->PTitle; ?>" class="thickbox" rel="diary_pics">
-                        <img src="<?=base_url('/data/diary/' . $Pic->Thumbnail); ?>" alt="<?=$Pic->PTitle; ?>">
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?> -->
+    {% if entry.Images %}
+    <div class="diary-pictures">
+        {% for image in entry.Images %}
+            <a href="{{ file_url(image) }}" title="{{ image.Description }}" class="thickbox" rel="diary_pics">
+                <img src="{{ file_url(image) }}" alt="{{ image.Description }}">
+            </a>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <ul class="diary-comments">
         {% for comment in entry.Comments %}

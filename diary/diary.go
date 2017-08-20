@@ -1,6 +1,7 @@
 package diary
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/matematik7/gongo/files"
 	"github.com/matematik7/gongo/render"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
 
 	"github.com/matematik7/camino-go/diary/models"
@@ -76,10 +78,136 @@ func (c *Diary) ServeMux() http.Handler {
 
 	router.Get("/read", c.ReadHandler)
 
-	router.Get("/{diaryID:[0-9]+}", c.ViewHandler)
-	router.Post("/{diaryID:[0-9]+}/comment", c.CommentHandler)
+	router.Route("/{diaryID:[0-9]+}", func(r chi.Router) {
+		r.Get("/", c.ViewHandler)
+		r.Post("/comment", c.CommentHandler)
+
+		r.Route("/pictures", func(r chi.Router) {
+			r.Get("/", c.PicturesHandler)
+			r.Post("/", c.AddPictureHandler)
+
+			// r.Route("/{imageID:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}}", func(r chi.Router) {
+			r.Route("/{imageID:[0-9a-f]+}", func(r chi.Router) {
+				r.Delete("/", c.DeletePictureHandler)
+				r.Get("/delete", c.DeletePictureHandler)
+			})
+		})
+	})
 
 	return router
+}
+
+func (c *Diary) DeletePictureHandler(w http.ResponseWriter, r *http.Request) {
+	diaryEntry := models.DiaryEntry{}
+	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	if query.RecordNotFound() {
+		// TODO: add not found to render
+		c.render.Error(w, r, errors.New("Not found"))
+		return
+	} else if query.Error != nil {
+		c.render.Error(w, r, query.Error)
+		return
+	}
+
+	if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
+		// TODO: add forbidden to render
+		c.render.Error(w, r, errors.New("Forbidden"))
+		return
+	}
+
+	id, err := uuid.FromString(chi.URLParam(r, "imageID"))
+	if err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	image := files.Image{
+		File: files.File{
+			ID: id,
+		},
+	}
+
+	if err := c.DB.Model(&diaryEntry).Association("Images").Delete(&image).Error; err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	if err := c.files.Delete(image); err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/diary/%d/pictures", diaryEntry.ID), http.StatusFound)
+}
+
+func (c *Diary) AddPictureHandler(w http.ResponseWriter, r *http.Request) {
+	diaryEntry := models.DiaryEntry{}
+	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	if query.RecordNotFound() {
+		// TODO: add not found to render
+		c.render.Error(w, r, errors.New("Not found"))
+		return
+	} else if query.Error != nil {
+		c.render.Error(w, r, query.Error)
+		return
+	}
+
+	if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
+		// TODO: add forbidden to render
+		c.render.Error(w, r, errors.New("Forbidden"))
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 20*1024*1024)
+	r.ParseMultipartForm(20 * 1024 * 1024)
+	defer r.Body.Close()
+
+	file, handler, err := r.FormFile("userfile")
+	if err != nil {
+		// TODO: use flashes for these errors that are form related
+		c.render.Error(w, r, err)
+		return
+	}
+	defer file.Close()
+
+	img, err := c.files.NewImage(file, handler.Filename, r.FormValue("description"))
+	if err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	if err := c.DB.Model(&diaryEntry).Association("Images").Append(img).Error; err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/diary/%d/pictures", diaryEntry.ID), http.StatusFound)
+}
+
+func (c *Diary) PicturesHandler(w http.ResponseWriter, r *http.Request) {
+	diaryEntry := models.DiaryEntry{}
+	query := c.DB.Preload("Images").First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	if query.RecordNotFound() {
+		// TODO: add not found to render
+		c.render.Error(w, r, errors.New("Not found"))
+		return
+	} else if query.Error != nil {
+		c.render.Error(w, r, query.Error)
+		return
+	}
+
+	if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
+		// TODO: add forbidden to render
+		c.render.Error(w, r, errors.New("Forbidden"))
+		return
+	}
+
+	context := render.Context{
+		"subpage": "Slike",
+		"entry":   diaryEntry,
+	}
+
+	c.render.Template(w, r, "diary_pictures.html", context)
 }
 
 func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
@@ -172,6 +300,7 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		}).
 		Preload("Comments.Author").
 		Preload("MapEntry.GpsData").
+		Preload("Images").
 		First(&entry, chi.URLParam(r, "diaryID"))
 
 	if err := query.Error; err != nil {
@@ -230,6 +359,9 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 	query := c.DB.Model(&models.DiaryEntry{}).
 		Select("*").
 		Preload("Author").
+		Preload("Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("diary_entry_id, RANDOM()").Select("distinct on (diary_entry_id) *")
+		}).
 		Order("created_at desc")
 
 	var yearItf interface{}

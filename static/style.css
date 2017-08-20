@@ -131,10 +131,12 @@ textarea {
 }
 .diary-entry img {
     float: left;
+	max-height: 130px;
 }
 
 .diary-pictures img {
 	max-height: 113px;
+	max-width: 150px;
 }
 
 .diary-pictures a {
@@ -190,6 +192,10 @@ textarea {
 }
 .diary-comments>.odd>.info {
     color: #607a00;
+}
+
+.delete-pics img {
+	max-height: 150px;
 }
 
 /* map */

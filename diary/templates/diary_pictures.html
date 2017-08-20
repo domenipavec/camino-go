@@ -1,0 +1,39 @@
+{% extends "diary_base.html" %}
+
+{% block title %}{{ entry.Title }} - Slike{% endblock %}
+
+{% block content %}
+
+<form enctype="multipart/form-data" action="/diary/{{ entry.ID }}/pictures" method="POST">
+    {{ csrf_token }}
+    <div class="form-group">
+        <label for="userfile">Slika</label>
+        <input type="file" id="userfile" name="userfile" required>
+    </div>
+    <div class="form-group">
+        <label for="description">Opis</label>
+        <input type="text" class="form-control" id="description" name="description">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Naloži!</button>
+</form>
+
+<h3>Brisanje slik</h3>
+<ul class="delete-pics">
+{% for image in entry.Images %}
+    <li>
+        <a
+            href="{{ file_url(image) }}"
+            title="{{ image.Description }}"
+            class="thickbox"
+            rel="diary_pics">
+                <img class="styled" src="{{ file_url(image) }}" alt="{{ image.Description }}" />
+        </a>
+        <a class="btn btn-default" href="/diary/{{ entry.ID }}/pictures/{{ image.ID.String() }}/delete" role="button">
+            <i class="fa fa-file-times"></i>
+            Izbriši
+        </a>
+    </li>
+{% endfor %}
+</ul>
+{% endblock %}

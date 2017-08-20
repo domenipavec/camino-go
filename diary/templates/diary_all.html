@@ -19,8 +19,12 @@
 
 		{% include "diary_header.html" %}
 
-		{% if entry.Thumbnail %}
-            <img src="/data/diary/{{ entry.Thumbnail }}" alt="{{ entry.Title }}" class="styled">
+		{% if entry.Images %}
+        {% for image in entry.Images %}
+            <a href="/diary/{{ entry.ID }}" title="{{ image.Description }}">
+                <img src="{{ file_url(image) }}" alt="{{ image.Description }}" class="styled">
+            </a>
+        {% endfor %}
 		{% endif %}
         <div class="diary_entry_content">
             <p>

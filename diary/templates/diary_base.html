@@ -14,15 +14,43 @@
                     {{ entry.CreatedAt.Year() }}
                 </a>
             </li>
-            <li class="active">{{ entry.Title }}</li>
+            {% if entry %}
+                {% if not subpage %}
+                    <li class="active">{{ entry.Title }}</li>
+                {% else %}
+                    <li><a href="/diary/{{ entry.ID }}">{{ entry.Title }}</a></li>
+                {% endif %}
+            {% endif %}
+            {% if subpage %}
+                <li class="active">{{ subpage }}</li>
+            {% endif %}
         {% endif %}
     {% endif %}
 
     {% if entries and user %}
-        <a class="btn btn-default btn-xs pull-right" href="/diary/read" role="button" title="Označi vse kot prebrano">
+    <div class="pull-right">
+        <a class="btn btn-default btn-xs" href="/diary/read" role="button" title="Označi vse kot prebrano">
             <i class="fa fa-check"></i>
             Prebrano
         </a>
+        {% if user.HasPermissions("create_diary_entries") %}
+            <a class="btn btn-default btn-xs" href="/diary/new" role="button" title="Označi vse kot prebrano">
+                <i class="fa fa-plus"></i>
+                Nov
+            </a>
+        {% endif %}
+    </div>
+    {% elif user and CanEdit(entry, user) %}
+    <div class="pull-right">
+        <a class="btn btn-default btn-xs" href="/diary/{{ entry.ID }}/edit" role="button">
+            <i class="fa fa-edit"></i>
+            Urejanje
+        </a>
+        <a class="btn btn-default btn-xs" href="/diary/{{ entry.ID }}/pictures" role="button">
+            <i class="fa fa-images"></i>
+            Slike
+        </a>
+    </div>
     {% endif %}
 </ol>
 {% endblock %}

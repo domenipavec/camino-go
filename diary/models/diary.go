@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/gongo/authorization"
+	"github.com/matematik7/gongo/files"
 )
 
 type DiaryEntry struct {
@@ -14,6 +15,7 @@ type DiaryEntry struct {
 	Comments   []Comment          `valid:"-"`
 	MapEntry   MapEntry           `valid:"-"`
 	MapEntryID uint
+	Images     []files.Image `gorm:"many2many:diary_image"`
 
 	NumComments uint `gorm:"-"`
 	Viewed      bool `gorm:"-"`
