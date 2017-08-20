@@ -229,15 +229,39 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := c.DB.Model(&models.DiaryEntry{}).
 		Select("*").
-		Joins(
-			`natural left join (
-				SELECT diary_entry_id as id, count(*) as num_comments
-				FROM comments
-				WHERE comments.deleted_at IS NULL
-				GROUP BY diary_entry_id
-			) c`).
 		Preload("Author").
 		Order("created_at desc")
+
+	var yearItf interface{}
+	if yearStr != "" {
+		year, err := strconv.Atoi(yearStr)
+		if err != nil {
+			c.render.Error(w, r, errors.Wrap(err, "invalid year"))
+			return
+		}
+		query = query.Where("date_part('year', created_at) = ?", year)
+		yearItf = year
+	}
+
+	// paging
+	var count int
+	if err := query.Count(&count).Error; err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+	pages := make([]int, (count+PerPage-1)/PerPage)
+	for i := range pages {
+		pages[i] = PerPage * i
+	}
+
+	query = query.Joins(
+		`natural left join (
+			SELECT diary_entry_id as id, count(*) as num_comments
+			FROM comments
+			WHERE comments.deleted_at IS NULL
+			GROUP BY diary_entry_id
+		) c`,
+	)
 
 	// get new status for user if logged in
 	if user := r.Context().Value("user"); user != nil {
@@ -262,27 +286,6 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 		)
 	} else {
 		query = query.Select("*, true as viewed")
-	}
-
-	var yearItf interface{}
-	if yearStr != "" {
-		year, err := strconv.Atoi(yearStr)
-		if err != nil {
-			c.render.Error(w, r, errors.Wrap(err, "invalid year"))
-			return
-		}
-		query = query.Where("date_part('year', created_at) = ?", year)
-		yearItf = year
-	}
-
-	var count int
-	if err := query.Count(&count).Error; err != nil {
-		c.render.Error(w, r, err)
-		return
-	}
-	pages := make([]int, (count+PerPage-1)/PerPage)
-	for i := range pages {
-		pages[i] = PerPage * i
 	}
 
 	offset := 0
