@@ -22,15 +22,27 @@
         <p title="Izhodišče">
             <b class="sr-only">Izhodišče:</b>
             <i class="fa fa-arrow-from-left"></i> {{ entry.MapEntry.GpsData.Start }}
-         </p>
+        </p>
         <p title="Cilj">
             <b class="sr-only">Cilj:</b>
             <i class="fa fa-arrow-to-right"></i> {{ entry.MapEntry.GpsData.End }}
-         </p>
+        </p>
         <p title="Razdalja">
             <b class="sr-only">Razdalja:</b>
             <i class="fa fa-arrows-h"></i> {{ entry.MapEntry.GpsData.Length|floatformat }} km
-         </p>
+        </p>
+        {% if entry.MapEntry.GpsData.Duration %}
+            <p title="Čas">
+                <b class="sr-only">Čas:</b>
+                <i class="fa fa-hourglass"></i> {{ entry.MapEntry.GpsData.Duration | durationformat }}
+            </p>
+        {% endif %}
+        {% if entry.MapEntry.GpsData.AvgSpeed %}
+            <p title="Povprečna hitrost">
+                <b class="sr-only">Povprečna histrost:</b>
+                <i class="fa fa-chart-area"></i> {{ entry.MapEntry.GpsData.AvgSpeed | floatformat }} km/h
+            </p>
+        {% endif %}
     {% endif %}
     <div class="clear"></div>
 </div>

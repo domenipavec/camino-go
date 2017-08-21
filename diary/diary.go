@@ -1,12 +1,19 @@
 package diary
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
+	"googlemaps.github.io/maps"
+
 	"github.com/asaskevich/govalidator"
+	"github.com/flosch/pongo2"
 	"github.com/go-chi/chi"
 	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
@@ -17,16 +24,20 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
+	polyline "github.com/twpayne/go-polyline"
 
 	"github.com/matematik7/camino-go/diary/models"
+	"github.com/matematik7/camino-go/endomondo"
 )
 
 const PerPage = 10
 
 type Diary struct {
-	DB     *gorm.DB
-	render *render.Render
-	files  *files.Files
+	DB        *gorm.DB
+	render    *render.Render
+	files     *files.Files
+	endomondo *endomondo.Client
+	maps      *maps.Client
 }
 
 func New() *Diary {
@@ -37,6 +48,7 @@ func (c *Diary) Configure(app gongo.App) error {
 	c.DB = app["DB"].(*gorm.DB)
 	c.render = app["Render"].(*render.Render)
 	c.files = app["Files"].(*files.Files)
+	c.endomondo = app["Endomondo"].(*endomondo.Client)
 
 	c.render.AddTemplates(packr.NewBox("./templates"))
 
@@ -54,6 +66,29 @@ func (c *Diary) Configure(app gongo.App) error {
 			Order("year desc").
 			Pluck("year", &years)
 		ctx["diaryYears"] = years
+	})
+
+	client, err := maps.NewClient(maps.WithAPIKey(viper.GetString("GMAP_SERVER_KEY")))
+	if err != nil {
+		return errors.Wrap(err, "could not get maps client")
+	}
+	c.maps = client
+
+	pongo2.RegisterFilter("durationformat", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
+		output := ""
+		duration := in.Integer()
+		if duration > 3600 {
+			output += fmt.Sprintf("%d ur", duration/3600)
+			duration %= 3600
+		}
+		if duration > 60 {
+			if output != "" {
+				output += " "
+			}
+			output += fmt.Sprintf("%d minut", duration/60)
+		}
+
+		return pongo2.AsValue(output), nil
 	})
 
 	return nil
@@ -85,6 +120,31 @@ func (c Diary) CanCreate(userItf interface{}) bool {
 	}
 	user := userItf.(authorization.User)
 	return user.HasPermissions("create_diary_entries")
+}
+
+func (c *Diary) getCity(latitude, longitude float64) (string, error) {
+	result, err := c.maps.Geocode(context.Background(), &maps.GeocodingRequest{
+		LatLng: &maps.LatLng{
+			Lat: latitude,
+			Lng: longitude,
+		},
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "could not get geocode result")
+	}
+
+	if len(result) < 1 {
+		return "", errors.Wrap(err, "no results for geocode")
+	}
+
+	for _, ac := range result[0].AddressComponents {
+		for _, typ := range ac.Types {
+			if typ == "locality" {
+				return ac.LongName, nil
+			}
+		}
+	}
+	return result[0].FormattedAddress, nil
 }
 
 func (c *Diary) ServeMux() http.Handler {
@@ -162,7 +222,7 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 	subpage := "Nov vnos"
 
 	if entryID != "" {
-		query := c.DB.Preload("MapEntry").First(&diaryEntry, entryID)
+		query := c.DB.Preload("MapEntry.GpsData").First(&diaryEntry, entryID)
 		if !query.RecordNotFound() && query.Error != nil {
 			c.render.Error(w, r, query.Error)
 			return
@@ -191,6 +251,96 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 			diaryEntry.AuthorID = r.Context().Value("user").(authorization.User).ID
 		}
 
+		if diaryEntry.MapEntry.City != "" && diaryEntry.MapEntry.MapGroupID == 0 {
+			mapGroupIDs := []uint{}
+			if err := c.DB.Model(&models.MapGroup{}).Order("id desc").Limit(1).Pluck("id", &mapGroupIDs).Error; err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
+			diaryEntry.MapEntry.MapGroupID = mapGroupIDs[0]
+		}
+
+		workout := r.FormValue("workout")
+		if workout != "" && workout != diaryEntry.MapEntry.GpsData.EndomondoID {
+			idparts := strings.SplitN(workout, "-", 2)
+			if len(idparts) != 2 {
+				c.render.Error(w, r, errors.New("invalid workout id"))
+				return
+			}
+			userID, err := strconv.Atoi(idparts[0])
+			if err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
+			workoutID, err := strconv.Atoi(idparts[1])
+			if err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
+
+			response, err := c.endomondo.Workout(userID, workoutID)
+			if err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
+
+			dataEntries := make([]models.DataEntry, len(response.Points.Points))
+			for i, point := range response.Points.Points {
+				dataEntries[i] = models.DataEntry{
+					Time:      point.Time,
+					Latitude:  point.Latitude,
+					Longitude: point.Longitude,
+					Elevation: point.Altitude,
+					Distance:  point.Distance,
+				}
+			}
+			dataJSON, err := json.Marshal(dataEntries)
+			if err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
+
+			inc := 1
+			mapURL := ""
+			for {
+				coords := [][]float64{}
+				for i := 0; i < len(dataEntries); i += inc {
+					coords = append(coords, []float64{
+						dataEntries[i].Latitude,
+						dataEntries[i].Longitude,
+					})
+				}
+
+				mapURL = url.QueryEscape(string(polyline.EncodeCoords(coords)))
+				if len(mapURL) <= 1800 {
+					break
+				}
+
+				inc *= 2
+			}
+
+			start, err := c.getCity(dataEntries[0].Latitude, dataEntries[0].Longitude)
+			if err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
+			end, err := c.getCity(dataEntries[len(dataEntries)-1].Latitude, dataEntries[len(dataEntries)-1].Longitude)
+			if err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
+
+			diaryEntry.MapEntry.GpsData.Start = start
+			diaryEntry.MapEntry.GpsData.End = end
+			diaryEntry.MapEntry.GpsData.Date = response.StartTime
+			diaryEntry.MapEntry.GpsData.Length = response.Distance
+			diaryEntry.MapEntry.GpsData.Duration = response.Duration
+			diaryEntry.MapEntry.GpsData.AvgSpeed = response.SpeedAvg
+			diaryEntry.MapEntry.GpsData.EndomondoID = workout
+			diaryEntry.MapEntry.GpsData.Data = string(dataJSON)
+			diaryEntry.MapEntry.GpsData.MapURL = mapURL
+		}
+
 		if err := c.DB.Save(&diaryEntry).Error; err != nil {
 			// TODO: flash this error
 		} else {
@@ -199,9 +349,32 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	subscriptions, err := c.endomondo.Subscriptions()
+	if err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	workouts := []models.Workout{}
+	for _, subscription := range subscriptions.Data {
+		if subscription.ReadableType != "WORKOUT" {
+			continue
+		}
+		workouts = append(workouts, models.Workout{
+			ID: fmt.Sprintf("%d-%d", subscription.Author.ID, subscription.Workout.ID),
+			Description: fmt.Sprintf("%s: %s %.1f km v %.1f urah",
+				subscription.Author.Name,
+				subscription.Workout.StartTime.Format("2. 1. 2006"),
+				subscription.Workout.Distance,
+				float64(subscription.Workout.Duration)/3600,
+			),
+		})
+	}
+
 	context := render.Context{
 		"entry":       diaryEntry,
 		"subpage":     subpage,
+		"workouts":    workouts,
 		"browser_key": viper.GetString("GMAP_BROWSER_KEY"),
 	}
 

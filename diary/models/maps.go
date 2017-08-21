@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"googlemaps.github.io/maps"
@@ -26,7 +27,17 @@ type MapEntry struct {
 }
 
 func (me *MapEntry) BeforeSave() error {
-	if me.City != "" {
+	if me.GpsData.ID > 0 {
+		dataEntries := []DataEntry{}
+		err := json.Unmarshal([]byte(me.GpsData.Data), &dataEntries)
+		if err != nil {
+			return errors.Wrap(err, "could not unmarshal gps data")
+		}
+
+		me.Lat = dataEntries[len(dataEntries)-1].Latitude
+		me.Lon = dataEntries[len(dataEntries)-1].Longitude
+		me.City = me.GpsData.End
+	} else if me.City != "" {
 		c, err := maps.NewClient(maps.WithAPIKey(viper.GetString("GMAP_SERVER_KEY")))
 		if err != nil {
 			return errors.Wrap(err, "could not get maps client")
@@ -60,10 +71,21 @@ type MapGroup struct {
 
 type GpsData struct {
 	gorm.Model
-	Start  string
-	End    string
-	Date   time.Time
-	Length float64
-	Data   string `gorm:"type:text"`
-	MapURL string
+	Start       string
+	End         string
+	Date        time.Time
+	Length      float64
+	Duration    float64
+	AvgSpeed    float64
+	EndomondoID string
+	Data        string `gorm:"type:text"`
+	MapURL      string
+}
+
+type DataEntry struct {
+	Time      time.Time `json:"time.Time"`
+	Latitude  float64   `json:"lat"`
+	Longitude float64   `json:"lon"`
+	Elevation float64   `json:"elevation"`
+	Distance  float64   `json:"dist"`
 }

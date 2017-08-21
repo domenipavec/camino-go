@@ -63,3 +63,8 @@ type EntryUserRead struct {
 	DiaryEntryID uint
 	UserID       uint
 }
+
+type Workout struct {
+	ID          string
+	Description string
+}

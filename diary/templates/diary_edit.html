@@ -14,24 +14,17 @@ var browser_key = "{{ browser_key }}";
     <label for="title">Naslov</label>
     <input type="text" class="form-control" id="title" name="title" placeholder="Naslov" value="{{ entry.Title }}" required>
 </div>
-<!-- <div class="form-group">
-    <label for="gps">Gps</label>
-    <select class="form-control" id="gps" name="gps">
-        <option value="0">Brez</option>
-        <?php foreach ($gps_list as $x): ?>
-            <?php if ($x->ID == $gps): ?>
-                <option value="<?=$x->ID; ?>" rel="<?=$x->End; ?>" selected>
-            <?php else: ?>
-                <option value="<?=$x->ID; ?>" rel="<?=$x->End; ?>">
-            <?php endif; ?>
-                <?=DateOnly2Slo($x->Date); ?>:
-                <?=$x->Start; ?> -
-                <?=$x->End; ?>
-                (<?=round($x->Length); ?> km)
+<div class="form-group">
+    <label for="workout">Endomondo</label>
+    <select class="form-control" id="workout" name="workout">
+        <option value="">Brez</option>
+        {% for workout in workouts %}
+            <option value="{{ workout.ID }}"{% if workout.ID == entry.MapEntry.GpsData.EndomondoID %} selected{% endif %}>
+                {{ workout.Description }}
             </option>
-        <?php endforeach; ?>
+        {% endfor %}
     </select>
-</div> -->
+</div>
 <div class="form-group">
     <label for="city">Kraj</label>
     <input type="text" class="form-control google_autocomplete" id="city" name="city" placeholder="Mesto" value="{{ entry.MapEntry.City }}">

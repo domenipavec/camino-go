@@ -17,6 +17,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/matematik7/camino-go/diary"
+	"github.com/matematik7/camino-go/endomondo"
 	"github.com/matematik7/camino-go/gallery"
 	"github.com/matematik7/camino-go/links"
 	"github.com/matematik7/camino-go/maps"
@@ -96,10 +97,10 @@ func main() {
 	Maps := maps.New()
 	Gallery := gallery.New()
 
-	// Endomondo, err := endomondo.New(viper.GetString("ENDOMONDO_EMAIL"), viper.GetString("ENDOMONDO_PASSWORD"))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	Endomondo, err := endomondo.New(viper.GetString("ENDOMONDO_EMAIL"), viper.GetString("ENDOMONDO_PASSWORD"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	app := gongo.App{
 		"Admin":          Admin,
@@ -117,7 +118,7 @@ func main() {
 		"Maps":       Maps,
 		"Gallery":    Gallery,
 
-		// "Endomondo": Endomondo,
+		"Endomondo": Endomondo,
 	}
 
 	if err := app.Configure(); err != nil {
