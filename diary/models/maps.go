@@ -1,9 +1,14 @@
 package models
 
 import (
+	"context"
 	"time"
 
+	"googlemaps.github.io/maps"
+
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 type MapEntry struct {
@@ -18,6 +23,31 @@ type MapEntry struct {
 	GpsDataID   uint
 
 	DiaryEntry *DiaryEntry
+}
+
+func (me *MapEntry) BeforeSave() error {
+	if me.City != "" {
+		c, err := maps.NewClient(maps.WithAPIKey(viper.GetString("GMAP_SERVER_KEY")))
+		if err != nil {
+			return errors.Wrap(err, "could not get maps client")
+		}
+
+		result, err := c.Geocode(context.Background(), &maps.GeocodingRequest{
+			Address: me.City,
+		})
+		if err != nil {
+			return errors.Wrap(err, "could not get geocode result")
+		}
+
+		if len(result) < 1 {
+			return errors.Wrap(err, "no results for geocode")
+		}
+
+		me.Lat = result[0].Geometry.Location.Lat
+		me.Lon = result[0].Geometry.Location.Lng
+	}
+
+	return nil
 }
 
 type MapGroup struct {

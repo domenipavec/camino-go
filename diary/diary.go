@@ -60,6 +60,7 @@ func (c Diary) Resources() []interface{} {
 	}
 }
 
+// TODO: can we simplify this can functions
 func (c Diary) CanEdit(entry models.DiaryEntry, userItf interface{}) bool {
 	if userItf == nil {
 		return false
@@ -71,6 +72,14 @@ func (c Diary) CanEdit(entry models.DiaryEntry, userItf interface{}) bool {
 	return user.HasPermissions("update_diary_entries")
 }
 
+func (c Diary) CanCreate(userItf interface{}) bool {
+	if userItf == nil {
+		return false
+	}
+	user := userItf.(authorization.User)
+	return user.HasPermissions("create_diary_entries")
+}
+
 func (c *Diary) ServeMux() http.Handler {
 	router := chi.NewRouter()
 
@@ -78,9 +87,15 @@ func (c *Diary) ServeMux() http.Handler {
 
 	router.Get("/read", c.ReadHandler)
 
+	router.Get("/new", c.EditHandler)
+	router.Post("/new", c.EditHandler)
+
 	router.Route("/{diaryID:[0-9]+}", func(r chi.Router) {
 		r.Get("/", c.ViewHandler)
 		r.Post("/comment", c.CommentHandler)
+
+		r.Get("/edit", c.EditHandler)
+		r.Post("/edit", c.EditHandler)
 
 		r.Route("/pictures", func(r chi.Router) {
 			r.Get("/", c.PicturesHandler)
@@ -95,6 +110,58 @@ func (c *Diary) ServeMux() http.Handler {
 	})
 
 	return router
+}
+
+func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
+	entryID := chi.URLParam(r, "diaryID")
+	diaryEntry := models.DiaryEntry{}
+	subpage := "Nov vnos"
+
+	if entryID != "" {
+		query := c.DB.Preload("MapEntry").First(&diaryEntry, entryID)
+		if !query.RecordNotFound() && query.Error != nil {
+			c.render.Error(w, r, query.Error)
+			return
+		}
+		subpage = "Urejanje"
+
+		if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
+			// TODO: add forbidden to render
+			c.render.Error(w, r, errors.New("Forbidden"))
+			return
+		}
+	} else {
+		if !c.CanCreate(r.Context().Value("user")) {
+			c.render.Error(w, r, errors.New("Forbidden"))
+			return
+		}
+	}
+
+	if r.Method == "POST" {
+		// TODO: can we use some kind of apply for this (like gobuffalo)
+		diaryEntry.Title = r.FormValue("title")
+		diaryEntry.Text = r.FormValue("content")
+		diaryEntry.MapEntry.City = r.FormValue("city")
+
+		if entryID == "" {
+			diaryEntry.AuthorID = r.Context().Value("user").(authorization.User).ID
+		}
+
+		if err := c.DB.Save(&diaryEntry).Error; err != nil {
+			// TODO: flash this error
+		} else {
+			http.Redirect(w, r, fmt.Sprintf("/diary/%d", diaryEntry.ID), http.StatusFound)
+			return
+		}
+	}
+
+	context := render.Context{
+		"entry":       diaryEntry,
+		"subpage":     subpage,
+		"browser_key": viper.GetString("GMAP_BROWSER_KEY"),
+	}
+
+	c.render.Template(w, r, "diary_edit.html", context)
 }
 
 func (c *Diary) DeletePictureHandler(w http.ResponseWriter, r *http.Request) {

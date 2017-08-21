@@ -8,22 +8,20 @@
         <li><a href="/diary">Dnevnik</a></li>
         {% if request.Path == '/' or request.Path == '/diary' %}
             <li class="active">{{ year }}</li>
-        {% else %}
+        {% elif entry.ID %}
             <li>
                 <a href="/diary?year={{ entry.CreatedAt.Year() }}">
                     {{ entry.CreatedAt.Year() }}
                 </a>
             </li>
-            {% if entry %}
-                {% if not subpage %}
-                    <li class="active">{{ entry.Title }}</li>
-                {% else %}
-                    <li><a href="/diary/{{ entry.ID }}">{{ entry.Title }}</a></li>
-                {% endif %}
-            {% endif %}
-            {% if subpage %}
+            {% if not subpage %}
+                <li class="active">{{ entry.Title }}</li>
+            {% else %}
+                <li><a href="/diary/{{ entry.ID }}">{{ entry.Title }}</a></li>
                 <li class="active">{{ subpage }}</li>
             {% endif %}
+        {% else %}
+            <li class="active">{{ subpage }}</li>
         {% endif %}
     {% endif %}
 

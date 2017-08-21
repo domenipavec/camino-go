@@ -1,0 +1,47 @@
+{% extends "diary_base.html" %}
+
+{% block title %}{{ entry.Title }}{% endblock %}
+
+{% block content %}
+<script src="/static/js/diary-edit.js"></script>
+<script type="text/javascript">
+var browser_key = "{{ browser_key }}";
+</script>
+<form action="{% if entry.ID %}/diary/{{ entry.ID }}/edit{% else %}/diary/new{% endif %}" method="POST">
+{{ csrf_token }}
+
+<div class="form-group">
+    <label for="title">Naslov</label>
+    <input type="text" class="form-control" id="title" name="title" placeholder="Naslov" value="{{ entry.Title }}" required>
+</div>
+<!-- <div class="form-group">
+    <label for="gps">Gps</label>
+    <select class="form-control" id="gps" name="gps">
+        <option value="0">Brez</option>
+        <?php foreach ($gps_list as $x): ?>
+            <?php if ($x->ID == $gps): ?>
+                <option value="<?=$x->ID; ?>" rel="<?=$x->End; ?>" selected>
+            <?php else: ?>
+                <option value="<?=$x->ID; ?>" rel="<?=$x->End; ?>">
+            <?php endif; ?>
+                <?=DateOnly2Slo($x->Date); ?>:
+                <?=$x->Start; ?> -
+                <?=$x->End; ?>
+                (<?=round($x->Length); ?> km)
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div> -->
+<div class="form-group">
+    <label for="city">Kraj</label>
+    <input type="text" class="form-control google_autocomplete" id="city" name="city" placeholder="Mesto" value="{{ entry.MapEntry.City }}">
+</div>
+<div class="form-group">
+    <label for="content">Vsebina</label>
+    <textarea class="form-control" id="content" name="content" placeholder="Vsebina" rows="7" required>{{ entry.Text }}</textarea>
+</div>
+
+<button type="submit" class="btn btn-primary">Shrani!</button>
+
+</form>
+{% endblock %}
