@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div id="gallery">
+{% for image in images %}
+	<a href="{{ image }}" class="thickbox" rel="gallery">
+        <img src="{{ image }}">
+    </a>
+{% endfor %}
+</div>
+{% for gallery in galleries %}
+    <h3><a href="/gallery/{{ gallery.ID }}" title="{{ gallery.Title }}">{{ gallery.Title }}</a>
+{% endfor %}
+{% endblock %}

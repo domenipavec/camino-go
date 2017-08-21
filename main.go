@@ -17,6 +17,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/matematik7/camino-go/diary"
+	"github.com/matematik7/camino-go/gallery"
 	"github.com/matematik7/camino-go/links"
 	"github.com/matematik7/camino-go/maps"
 	"github.com/matematik7/camino-go/pages"
@@ -76,12 +77,12 @@ func main() {
 	Render := render.New(isProd)
 	Admin := admin.New("/admin")
 
-	s3session, err := session.NewSession()
+	AwsSession, err := session.NewSession()
 	if err != nil {
 		log.Fatal(err)
 	}
 	// TODO: make bucket configurable
-	Storage, err := s3storage.New(s3session, "images-camino", false)
+	Storage, err := s3storage.New(AwsSession, "images-camino", false)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -93,6 +94,12 @@ func main() {
 	Links := links.New()
 	CaminoPage := pages.New(1)
 	Maps := maps.New()
+	Gallery := gallery.New()
+
+	// Endomondo, err := endomondo.New(viper.GetString("ENDOMONDO_EMAIL"), viper.GetString("ENDOMONDO_PASSWORD"))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	app := gongo.App{
 		"Admin":          Admin,
@@ -101,12 +108,16 @@ func main() {
 		"DB":             DB,
 		"Files":          Files,
 		"Render":         Render,
+		"Storage":        Storage,
 		"Store":          store,
 
 		"Diary":      Diary,
 		"Links":      Links,
 		"CaminoPage": CaminoPage,
 		"Maps":       Maps,
+		"Gallery":    Gallery,
+
+		// "Endomondo": Endomondo,
 	}
 
 	if err := app.Configure(); err != nil {
@@ -153,6 +164,7 @@ func main() {
 		r.Mount("/links", Links)
 		r.Mount("/camino", CaminoPage)
 		r.Mount("/map", Maps.ServeMux())
+		r.Mount("/gallery", Gallery.ServeMux())
 	})
 
 	r.Mount("/static", http.StripPrefix("/static", http.FileServer(packr.NewBox("./static"))))

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}Galerija{% endblock %}
+
+{% block content %}
+{% for gallery in galleries %}
+    <h3><a href="/gallery/{{ gallery.ID }}" title="{{ gallery.Title }}">{{ gallery.Title }}</a>
+{% endfor %}
+{% endblock %}
