@@ -38,8 +38,14 @@
             </a>
         {% endif %}
     </div>
-    {% elif user and CanEdit(entry, user) %}
+    {% elif entry and user and CanEdit(entry, user) %}
     <div class="pull-right">
+        {% if !entry.Published %}
+            <a class="btn btn-default btn-xs" href="/diary/{{ entry.ID }}/publish" role="button">
+                <i class="fa fa-eye"></i>
+                Objavi
+            </a>
+        {% endif %}
         <a class="btn btn-default btn-xs" href="/diary/{{ entry.ID }}/edit" role="button">
             <i class="fa fa-edit"></i>
             Urejanje

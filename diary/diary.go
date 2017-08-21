@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/go-chi/chi"
@@ -40,10 +41,16 @@ func (c *Diary) Configure(app gongo.App) error {
 	c.render.AddTemplates(packr.NewBox("./templates"))
 
 	c.render.AddContextFunc(func(r *http.Request, ctx render.Context) {
+		// TODO: add this as helper to authorization
+		userID := -1
+		if r.Context().Value("user") != nil {
+			userID = int(r.Context().Value("user").(authorization.User).ID)
+		}
 		var years []int
 		// TODO: add error handling
 		c.DB.Model(&models.DiaryEntry{}).
 			Select("DISTINCT date_part('year', created_at) as year").
+			Where("published = ? or author_id = ?", true, userID).
 			Order("year desc").
 			Pluck("year", &years)
 		ctx["diaryYears"] = years
@@ -97,6 +104,8 @@ func (c *Diary) ServeMux() http.Handler {
 		r.Get("/edit", c.EditHandler)
 		r.Post("/edit", c.EditHandler)
 
+		r.Get("/publish", c.PublishHandler)
+
 		r.Route("/pictures", func(r chi.Router) {
 			r.Get("/", c.PicturesHandler)
 			r.Post("/", c.AddPictureHandler)
@@ -110,6 +119,41 @@ func (c *Diary) ServeMux() http.Handler {
 	})
 
 	return router
+}
+
+func (c *Diary) PublishHandler(w http.ResponseWriter, r *http.Request) {
+	diaryEntry := models.DiaryEntry{}
+	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	if query.RecordNotFound() {
+		// TODO: add not found to render
+		c.render.Error(w, r, errors.New("Not found"))
+		return
+	} else if query.Error != nil {
+		c.render.Error(w, r, query.Error)
+		return
+	}
+
+	if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
+		// TODO: add forbidden to render
+		c.render.Error(w, r, errors.New("Forbidden"))
+		return
+	}
+
+	now := time.Now()
+	updates := models.DiaryEntry{
+		Model: gorm.Model{
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		Published: true,
+	}
+
+	if err := c.DB.Model(&diaryEntry).UpdateColumns(updates).Error; err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/diary/%d", diaryEntry.ID), http.StatusFound)
 }
 
 func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
@@ -408,11 +452,17 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 	yearStr := r.URL.Query().Get("year")
 
+	userID := -1
+	if r.Context().Value("user") != nil {
+		userID = int(r.Context().Value("user").(authorization.User).ID)
+	}
+
 	// show latest year on main page
 	if r.URL.Path == "/" {
 		var year []int
 		query := c.DB.Model(&models.DiaryEntry{}).
 			Select("DISTINCT date_part('year', created_at) as year").
+			Where("published = ? or author_id = ?", true, userID).
 			Order("year desc").
 			Limit(1).
 			Pluck("year", &year)
@@ -429,6 +479,7 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 		Preload("Images", func(db *gorm.DB) *gorm.DB {
 			return db.Order("diary_entry_id, RANDOM()").Select("distinct on (diary_entry_id) *")
 		}).
+		Where("published = ? or author_id = ?", true, userID).
 		Order("created_at desc")
 
 	var yearItf interface{}
