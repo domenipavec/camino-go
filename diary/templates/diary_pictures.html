@@ -25,8 +25,9 @@
         <a
             href="{{ file_url(image) }}"
             title="{{ image.Description }}"
-            class="thickbox"
-            rel="diary_pics">
+            class="js-smartPhoto"
+            data-caption="{{ image.Description }}"
+            data-group="diary_pics">
                 <img class="styled" src="{{ file_url(image) }}" alt="{{ image.Description }}" />
         </a>
         <a class="btn btn-default" href="/diary/{{ entry.ID }}/pictures/{{ image.ID.String() }}/delete" role="button">

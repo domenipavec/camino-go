@@ -5,7 +5,7 @@
 {% block content %}
 <div id="gallery">
 {% for image in images %}
-	<a href="{{ image }}" class="thickbox" rel="gallery">
+	<a href="{{ image }}" class="js-smartPhoto" data-group="gallery">
         <img src="https://thumbnailer.ipavec.net/100x75/{{ image }}">
     </a>
 {% endfor %}

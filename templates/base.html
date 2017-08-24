@@ -16,7 +16,8 @@
     <meta http-equiv="Content-Language" content="sl">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//unpkg.com/smartphoto@0.7.6/css/smartphoto.min.css">
     <link rel="stylesheet" href="/static/style.css">
 
     <script defer src="/static/js/fontawesome/solid.min.js"></script>
@@ -26,6 +27,12 @@
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script src="//unpkg.com/smartphoto@0.7.6/js/smartphoto.min.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded',function(){
+    new smartPhoto(".js-smartPhoto");
+});
+</script>
 
 <div class="container container-body">
 
