@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path"
+	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/gobuffalo/packr"
@@ -107,14 +108,17 @@ func (c *Gallery) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	images := make([]string, len(imageNames))
-	for i, name := range imageNames {
+	images := make([]string, 0, len(imageNames))
+	for _, name := range imageNames {
+		if !strings.HasSuffix(strings.ToLower(name), ".jpg") {
+			continue
+		}
 		url, err := c.storage.URL(name)
 		if err != nil {
 			c.render.Error(w, r, err)
 			return
 		}
-		images[i] = url
+		images = append(images, url)
 	}
 
 	context := render.Context{
