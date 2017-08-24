@@ -22,7 +22,7 @@
 		{% if entry.Images %}
         {% for image in entry.Images %}
             <a href="/diary/{{ entry.ID }}" title="{{ image.Description }}">
-                <img src="{{ file_url(image) }}" alt="{{ image.Description }}" class="styled">
+                <img src="https://thumbnailer.ipavec.net/130x98/{{ file_url(image) }}" alt="{{ image.Description }}" class="styled">
             </a>
         {% endfor %}
 		{% endif %}

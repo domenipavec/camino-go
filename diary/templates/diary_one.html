@@ -20,7 +20,7 @@
     <div class="diary-pictures">
         {% for image in entry.Images %}
             <a href="{{ file_url(image) }}" title="{{ image.Description }}" class="thickbox" rel="diary_pics">
-                <img src="{{ file_url(image) }}" alt="{{ image.Description }}">
+                <img src="https://thumbnailer.ipavec.net/150x113/{{ file_url(image) }}" alt="{{ image.Description }}">
             </a>
         {% endfor %}
     </div>
