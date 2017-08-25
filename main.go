@@ -52,7 +52,18 @@ func main() {
 	viper.SetDefault("cookie_key", "SESSION_SECRET") // TODO: generate secret in generator
 	cookieKey := viper.GetString("cookie_key")
 
-	DB, err := gorm.Open("postgres", "host=localhost user=postgres sslmode=disable password=postgres")
+	viper.SetDefault("psql_host", "localhost")
+	viper.SetDefault("psql_dbname", "postgres")
+	viper.SetDefault("psql_user", "postgres")
+	viper.SetDefault("psql_password", "postgres")
+	psqlConfig := fmt.Sprintf(
+		"host=%s dbname=%s user=%s password=%s sslmode=disable",
+		viper.GetString("psql_host"),
+		viper.GetString("psql_dbname"),
+		viper.GetString("psql_user"),
+		viper.GetString("psql_password"),
+	)
+	DB, err := gorm.Open("postgres", psqlConfig)
 	if err != nil {
 		log.Fatalf("could not open db: %v", err)
 	}
