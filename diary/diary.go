@@ -91,6 +91,10 @@ func (c *Diary) Configure(app gongo.App) error {
 		return pongo2.AsValue(output), nil
 	})
 
+	app["Authorization"].(*authorization.Authorization).OnNewUser.Add(func(ctx context.Context) error {
+		return c.markAllRead(ctx.Value("DB").(*gorm.DB), ctx.Value("user").(authorization.User).ID)
+	})
+
 	return nil
 }
 
@@ -145,6 +149,34 @@ func (c *Diary) getCity(latitude, longitude float64) (string, error) {
 		}
 	}
 	return result[0].FormattedAddress, nil
+}
+
+func (c *Diary) markAllRead(DB *gorm.DB, userID uint) error {
+	if err := DB.Model(&models.EntryUserRead{}).Where("user_id = ?", userID).Update("updated_at", "NOW()").Error; err != nil {
+		return errors.Wrap(err, "could not update entry user read entries")
+	}
+
+	query := DB.Exec(
+		`INSERT INTO entry_user_reads
+		(created_at, updated_at, diary_entry_id, user_id)
+		(
+			SELECT NOW(), NOW(), id, ?
+			FROM diary_entries
+			LEFT JOIN (
+				SELECT 1 as already_exists, diary_entry_id
+				FROM entry_user_reads
+				WHERE user_id = ?
+			) ae ON ae.diary_entry_id = diary_entries.id
+			WHERE ae.already_exists IS DISTINCT FROM 1
+		)`,
+		userID,
+		userID,
+	)
+	if query.Error != nil {
+		return errors.Wrap(query.Error, "could not create new entry user read entries")
+	}
+
+	return nil
 }
 
 func (c *Diary) ServeMux() http.Handler {
@@ -545,30 +577,8 @@ func (c *Diary) ReadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	user := userItf.(authorization.User)
 
-	// TODO mark everything as read on user register
-	if err := c.DB.Model(&models.EntryUserRead{}).Where("user_id = ?", user.ID).Update("updated_at", "NOW()").Error; err != nil {
+	if err := c.markAllRead(c.DB, user.ID); err != nil {
 		c.render.Error(w, r, err)
-		return
-	}
-
-	query := c.DB.Exec(
-		`INSERT INTO entry_user_reads
-		(created_at, updated_at, diary_entry_id, user_id)
-		(
-			SELECT NOW(), NOW(), id, ?
-			FROM diary_entries
-			LEFT JOIN (
-				SELECT 1 as already_exists, diary_entry_id
-				FROM entry_user_reads
-				WHERE user_id = ?
-			) ae ON ae.diary_entry_id = diary_entries.id
-			WHERE ae.already_exists IS DISTINCT FROM 1
-		)`,
-		user.ID,
-		user.ID,
-	)
-	if query.Error != nil {
-		c.render.Error(w, r, query.Error)
 		return
 	}
 
