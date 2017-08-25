@@ -55,6 +55,13 @@ func (c *Maps) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filteredGroups := groups[:0]
+	for _, group := range groups {
+		if len(group.Entries) > 0 {
+			filteredGroups = append(filteredGroups, group)
+		}
+	}
+
 	var gpsData []models.GpsData
 	if err := c.DB.Find(&gpsData).Error; err != nil {
 		c.render.Error(w, r, err)
@@ -62,7 +69,7 @@ func (c *Maps) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	context := render.Context{
-		"groups":      groups,
+		"groups":      filteredGroups,
 		"gps_data":    gpsData,
 		"browser_key": viper.GetString("GMAP_BROWSER_KEY"),
 	}
