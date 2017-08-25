@@ -1,4 +1,7 @@
 <div class="diary-entry-footer">
+    {% if not entry.Published %}
+        <p title="Ni objavljeno"><i class="fa fa-eye-slash"></i></p>
+    {% endif %}
     <p title="Ustvarjeno">
         <b class="sr-only">Ustvarjeno:</b>
         <i class="fa fa-file"></i> {{ entry.CreatedAt | date:"2. 1. 2006 ob 15:04" }}
