@@ -7,6 +7,8 @@
 <script type="text/javascript">
 var browser_key = "{{ browser_key }}";
 </script>
+<link href="http://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.7/summernote.css" rel="stylesheet">
+<script src="http://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.7/summernote.js"></script>
 <form action="{% if entry.ID %}/diary/{{ entry.ID }}/edit{% else %}/diary/new{% endif %}" method="POST">
 {{ csrf_token }}
 

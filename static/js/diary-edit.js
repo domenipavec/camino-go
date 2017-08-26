@@ -15,3 +15,17 @@ function initAutocomplete () {
 		var ac = new google.maps.places.Autocomplete(this);
 	});
 }
+
+$(document).ready(function() {
+  $('#content').summernote({
+	  height: 300,
+	  toolbar: [
+		  ['style', ['bold', 'italic', 'underline', 'clear']],
+		  ['do', ['undo', 'redo']],
+		  ['font', ['strikethrough', 'superscript', 'subscript']],
+		  ['insert', ['link', 'video', 'table', 'hr']],
+		  ['para', ['style', 'ul', 'ol']],
+		  ['misc', ['fullscreen', 'codeview']],
+	  ],
+  });
+});
