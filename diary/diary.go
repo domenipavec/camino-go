@@ -740,8 +740,16 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hasUnread := false
+	for _, entry := range entries {
+		if !entry.Viewed || entry.NewComments {
+			hasUnread = true
+		}
+	}
+
 	context := render.Context{
 		"entries":    entries,
+		"hasUnread":  hasUnread,
 		"offset":     offset,
 		"pages":      pages,
 		"prevOffset": prevOffset,

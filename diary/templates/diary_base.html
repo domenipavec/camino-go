@@ -27,10 +27,12 @@
 
     {% if entries and user %}
     <div class="pull-right">
-        <a class="btn btn-default btn-xs" href="/diary/read" role="button" title="Označi vse kot prebrano">
-            <i class="fa fa-check"></i>
-            Prebrano
-        </a>
+        {% if hasUnread %}
+            <a class="btn btn-default btn-xs" href="/diary/read" role="button" title="Označi vse kot prebrano">
+                <i class="fa fa-check"></i>
+                Prebrano
+            </a>
+        {% endif %}
         {% if user.HasPermissions("create_diary_entries") %}
             <a class="btn btn-default btn-xs" href="/diary/new" role="button" title="Označi vse kot prebrano">
                 <i class="fa fa-plus"></i>
