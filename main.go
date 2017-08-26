@@ -52,6 +52,8 @@ func main() {
 	viper.SetDefault("cookie_key", "SESSION_SECRET") // TODO: generate secret in generator
 	cookieKey := viper.GetString("cookie_key")
 
+	viper.SetDefault("csrf_key", "01234567890123456789012345678901")
+
 	viper.SetDefault("psql_host", "localhost")
 	viper.SetDefault("psql_dbname", "postgres")
 	viper.SetDefault("psql_user", "postgres")
@@ -162,14 +164,14 @@ func main() {
 			ctx["csrf_token"] = pongo2.AsSafeValue(csrf.TemplateField(r))
 		})
 		r.Use(csrf.Protect(
-			[]byte("01234567890123456789012345678901"),
+			[]byte(viper.GetString("csrf_key")),
 			csrf.HttpOnly(true),
 			csrf.Secure(isProd),
 			csrf.FieldName("csrfmiddlewaretoken"),
 			csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				Render.Error(w, r, errors.New("Forbidden")) // TODO: move this handler to render
 			})),
-		)) // TODO: pass as param and generate in generator
+		))
 
 		r.Mount("/diary", Diary.ServeMux())
 		r.Mount("/", Diary.ServeMux())
