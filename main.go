@@ -70,6 +70,19 @@ func main() {
 		log.Fatalf("could not open db: %v", err)
 	}
 
+	if isProd {
+		// TODO: automate this somehow
+		if viper.GetString("psql_password") == "postgres" {
+			log.Fatal("Cannot use default password in production")
+		}
+		if viper.GetString("csrf_key") == "01234567890123456789012345678901" {
+			log.Fatal("Cannot use default csrf_key in production")
+		}
+		if viper.GetString("cookie_key") == "SESSION_SECRET" {
+			log.Fatal("Cannot use default cookie key in production")
+		}
+	}
+
 	validate := func(scope *gorm.Scope) {
 		ok, err := govalidator.ValidateStruct(scope.Value)
 		if !ok {
