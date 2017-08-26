@@ -283,7 +283,9 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 			diaryEntry.AuthorID = r.Context().Value("user").(authorization.User).ID
 		}
 
-		if diaryEntry.MapEntry.City != "" && diaryEntry.MapEntry.MapGroupID == 0 {
+		workout := r.FormValue("workout")
+
+		if (diaryEntry.MapEntry.City != "" || workout != "") && diaryEntry.MapEntry.MapGroupID == 0 {
 			mapGroupIDs := []uint{}
 			if err := c.DB.Model(&models.MapGroup{}).Order("id desc").Limit(1).Pluck("id", &mapGroupIDs).Error; err != nil {
 				c.render.Error(w, r, err)
@@ -292,7 +294,6 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 			diaryEntry.MapEntry.MapGroupID = mapGroupIDs[0]
 		}
 
-		workout := r.FormValue("workout")
 		if workout != "" && workout != diaryEntry.MapEntry.GpsData.EndomondoID {
 			idparts := strings.SplitN(workout, "-", 2)
 			if len(idparts) != 2 {

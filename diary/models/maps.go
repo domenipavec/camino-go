@@ -27,7 +27,7 @@ type MapEntry struct {
 }
 
 func (me *MapEntry) BeforeSave() error {
-	if me.GpsData.ID > 0 {
+	if len(me.GpsData.Data) > 0 {
 		dataEntries := []DataEntry{}
 		err := json.Unmarshal([]byte(me.GpsData.Data), &dataEntries)
 		if err != nil {
