@@ -87,6 +87,12 @@ $(function () {
 
         <h2>{{ getTitle() }}</h2>
 
+        {% for flash in flashes %}
+            <div class="alert alert-{{ flash.Type }}" role="alert">
+                <p>{{ flash.Message }}</p>
+            </div>
+        {% endfor %}
+
         {% block content %}{% endblock %}<br />
 
         <div class="clear"></div>

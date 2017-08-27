@@ -245,6 +245,11 @@ func (c *Diary) PublishHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := c.render.AddFlash(w, r, FlashInfo("Vnos objavljen!")); err != nil {
+		c.render.Error(w, r, errors.Wrap(err, "could not set flash"))
+		return
+	}
+
 	http.Redirect(w, r, fmt.Sprintf("/diary/%d", diaryEntry.ID), http.StatusFound)
 }
 
@@ -375,8 +380,16 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := c.DB.Save(&diaryEntry).Error; err != nil {
-			// TODO: flash this error
+			if err := c.render.AddFlash(w, r, FlashError(err.Error())); err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
 		} else {
+			if err := c.render.AddFlash(w, r, FlashInfo("Vnos shranjen!")); err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
+
 			http.Redirect(w, r, fmt.Sprintf("/diary/%d", diaryEntry.ID), http.StatusFound)
 			return
 		}
@@ -454,6 +467,11 @@ func (c *Diary) DeletePictureHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := c.render.AddFlash(w, r, FlashInfo("Slike izbrisana!")); err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
 	http.Redirect(w, r, fmt.Sprintf("/diary/%d/pictures", diaryEntry.ID), http.StatusFound)
 }
 
@@ -494,6 +512,11 @@ func (c *Diary) AddPictureHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := c.DB.Model(&diaryEntry).Association("Images").Append(img).Error; err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	if err := c.render.AddFlash(w, r, FlashInfo("Slika dodana!")); err != nil {
 		c.render.Error(w, r, err)
 		return
 	}
@@ -559,9 +582,17 @@ func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// TODO: figure better way for handling validation errors for bigger forms
 		if _, ok := err.(govalidator.Errors); ok {
-			// TODO: flash message about empty comment
+			if err := c.render.AddFlash(w, r, FlashError("Vpisati morate vaš komentar!")); err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
 			http.Redirect(w, r, r.Referer(), http.StatusFound)
 		}
+		c.render.Error(w, r, err)
+		return
+	}
+
+	if err := c.render.AddFlash(w, r, FlashInfo("Komentar objavljen!")); err != nil {
 		c.render.Error(w, r, err)
 		return
 	}
@@ -579,6 +610,11 @@ func (c *Diary) ReadHandler(w http.ResponseWriter, r *http.Request) {
 	user := userItf.(authorization.User)
 
 	if err := c.markAllRead(c.DB, user.ID); err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	if err := c.render.AddFlash(w, r, FlashInfo("Vsi vnosi označeni kot prebrani!")); err != nil {
 		c.render.Error(w, r, err)
 		return
 	}
