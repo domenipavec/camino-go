@@ -19,16 +19,11 @@
 </form>
 
 <h3>Brisanje slik</h3>
-<ul class="delete-pics">
+<ul class="delete-pics" id="gallery">
 {% for image in entry.Images %}
     <li>
-        <a
-            href="{{ file_url(image) }}"
-            title="{{ image.Description }}"
-            class="js-smartPhoto"
-            data-caption="{{ image.Description }}"
-            data-group="diary_pics">
-                <img class="styled" src="{{ file_url(image) }}" alt="{{ image.Description }}" />
+        <a class="js-gallery-image" href="{{ file_url(image) }}" title="{{ image.Description }}">
+                <img class="styled" src="https://thumbnailer.ipavec.net/200x150/{{ file_url(image) }}" alt="{{ image.Description }}" />
         </a>
         <a class="btn btn-default" href="/diary/{{ entry.ID }}/pictures/{{ image.ID.String() }}/delete" role="button">
             <i class="fa fa-file-times"></i>

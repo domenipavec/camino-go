@@ -204,11 +204,11 @@ textarea {
 }
 
 /* gallery */
-#gallery img {
+.gallery img {
 	max-height: 75px;
 }
 
-#gallery a {
+.gallery a {
 	width: 122px;
 	height: 97px;
 	text-align: center;
