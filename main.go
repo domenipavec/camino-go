@@ -164,6 +164,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer) // TODO: proper error page
 	r.Use(middleware.StripSlashes)
+	r.Use(middleware.DefaultCompress)
 	r.Use(middleware.WithValue("store", store)) // TODO: do we need this anywhere?
 	r.Use(Authorization.Middleware)
 
