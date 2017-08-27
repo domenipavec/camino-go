@@ -12,6 +12,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/camino-go/diary/models"
 	"github.com/matematik7/gongo"
+	"github.com/matematik7/gongo/authorization"
 	"github.com/matematik7/gongo/render"
 	"github.com/spf13/viper"
 )
@@ -51,7 +52,8 @@ func (c *Maps) ServeMux() http.Handler {
 }
 
 func (c *Maps) ViewHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: move etag handling to render in gongo
+	// TODO: move etag handling to render in gongo (important: binary.Write cannot handle generic uint, must be uint64)
+	// can we just use gongo.Context to somehow calculate etag?
 	etag := md5.New()
 
 	var groups []models.MapGroup
@@ -62,17 +64,26 @@ func (c *Maps) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Context().Value("user") != nil {
+		id := r.Context().Value("user").(authorization.User).ID
+		err := binary.Write(etag, binary.BigEndian, uint64(id))
+		if err != nil {
+			c.render.Error(w, r, err)
+			return
+		}
+	}
+
 	gpsDataIDS := make([]uint, 0, 100)
 	filteredGroups := groups[:0]
 	for _, group := range groups {
 		if len(group.Entries) > 0 {
 			filteredGroups = append(filteredGroups, group)
 		}
-		binary.Write(etag, binary.BigEndian, group.ID)
-		binary.Write(etag, binary.BigEndian, group.UpdatedAt.UnixNano())
+		binary.Write(etag, binary.BigEndian, uint64(group.ID))
+		binary.Write(etag, binary.BigEndian, uint64(group.UpdatedAt.UnixNano()))
 		for _, entry := range group.Entries {
-			binary.Write(etag, binary.BigEndian, entry.ID)
-			binary.Write(etag, binary.BigEndian, entry.UpdatedAt.UnixNano())
+			binary.Write(etag, binary.BigEndian, uint64(entry.ID))
+			binary.Write(etag, binary.BigEndian, uint64(entry.UpdatedAt.UnixNano()))
 			if entry.GpsDataID != 0 {
 				gpsDataIDS = append(gpsDataIDS, entry.GpsDataID)
 			}
@@ -86,8 +97,8 @@ func (c *Maps) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, gpsEntry := range gpsData {
-		binary.Write(etag, binary.BigEndian, gpsEntry.ID)
-		binary.Write(etag, binary.BigEndian, gpsEntry.UpdatedAt.UnixNano())
+		binary.Write(etag, binary.BigEndian, uint64(gpsEntry.ID))
+		binary.Write(etag, binary.BigEndian, uint64(gpsEntry.UpdatedAt.UnixNano()))
 	}
 
 	etagStr := hex.EncodeToString(etag.Sum(nil))
