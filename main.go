@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/evalphobia/logrus_sentry"
 	"github.com/flosch/pongo2"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -30,10 +31,12 @@ import (
 	"github.com/matematik7/gongo/files/storage/s3storage"
 	"github.com/matematik7/gongo/render"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 func main() {
+
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
@@ -58,6 +61,22 @@ func main() {
 	viper.SetDefault("psql_dbname", "postgres")
 	viper.SetDefault("psql_user", "postgres")
 	viper.SetDefault("psql_password", "postgres")
+
+	// TODO: to something similar to goth auto init
+	log := logrus.New()
+
+	if viper.GetString("sentry_dsn") != "" {
+		hook, err := logrus_sentry.NewSentryHook(viper.GetString("sentry_dsn"), []logrus.Level{
+			logrus.PanicLevel,
+			logrus.FatalLevel,
+			logrus.ErrorLevel,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Hooks.Add(hook)
+	}
+
 	psqlConfig := fmt.Sprintf(
 		"host=%s dbname=%s user=%s password=%s sslmode=disable",
 		viper.GetString("psql_host"),
@@ -134,6 +153,7 @@ func main() {
 		"Authorization":  Authorization,
 		"DB":             DB,
 		"Files":          Files,
+		"Log":            log,
 		"Render":         Render,
 		"Storage":        Storage,
 		"Store":          store,
@@ -161,7 +181,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
+	r.Use(NewStructuredLogger(log))
 	r.Use(middleware.Recoverer) // TODO: proper error page
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware.DefaultCompress)
@@ -215,4 +235,87 @@ func main() {
 	})
 
 	http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), r)
+}
+
+func NewStructuredLogger(logger *logrus.Logger) func(next http.Handler) http.Handler {
+	return middleware.RequestLogger(&StructuredLogger{logger})
+}
+
+type StructuredLogger struct {
+	Logger *logrus.Logger
+}
+
+func (l *StructuredLogger) NewLogEntry(r *http.Request) middleware.LogEntry {
+	entry := &StructuredLoggerEntry{Logger: logrus.NewEntry(l.Logger)}
+	logFields := logrus.Fields{}
+
+	logFields["TimeStamp"] = time.Now().UTC().Format(time.RFC1123)
+
+	if reqID := middleware.GetReqID(r.Context()); reqID != "" {
+		logFields["RequestID"] = reqID
+	}
+
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	logFields["HttpScheme"] = scheme
+	logFields["HttpProtocol"] = r.Proto
+	logFields["HttpMethod"] = r.Method
+
+	logFields["RemoteAddr"] = r.RemoteAddr
+	logFields["UserAgent"] = r.UserAgent()
+
+	logFields["URL"] = fmt.Sprintf("%s://%s%s", scheme, r.Host, r.RequestURI)
+
+	entry.Logger = entry.Logger.WithFields(logFields)
+
+	entry.Logger.Infoln("request started")
+
+	return entry
+}
+
+type StructuredLoggerEntry struct {
+	Logger logrus.FieldLogger
+}
+
+func (l *StructuredLoggerEntry) Write(status, bytes int, elapsed time.Duration) {
+	l.Logger = l.Logger.WithFields(logrus.Fields{
+		"resp_status": status, "resp_bytes_length": bytes,
+		"resp_elasped_ms": float64(elapsed.Nanoseconds()) / 1000000.0,
+	})
+
+	l.Logger.Infoln("request complete")
+}
+
+func (l *StructuredLoggerEntry) Panic(v interface{}, stack []byte) {
+	l.Logger = l.Logger.WithFields(logrus.Fields{
+		"stack": string(stack),
+	})
+
+	l.Logger.Error(fmt.Sprintf("%+v", v))
+}
+
+// Helper methods used by the application to get the request-scoped
+// logger entry and set additional fields between handlers.
+//
+// This is a useful pattern to use to set state on the entry as it
+// passes through the handler chain, which at any point can be logged
+// with a call to .Print(), .Info(), etc.
+
+func GetLogEntry(r *http.Request) logrus.FieldLogger {
+	entry := middleware.GetLogEntry(r).(*StructuredLoggerEntry)
+	return entry.Logger
+}
+
+func LogEntrySetField(r *http.Request, key string, value interface{}) {
+	if entry, ok := r.Context().Value(middleware.LogEntryCtxKey).(*StructuredLoggerEntry); ok {
+		entry.Logger = entry.Logger.WithField(key, value)
+	}
+}
+
+func LogEntrySetFields(r *http.Request, fields map[string]interface{}) {
+	if entry, ok := r.Context().Value(middleware.LogEntryCtxKey).(*StructuredLoggerEntry); ok {
+		entry.Logger = entry.Logger.WithFields(fields)
+	}
 }

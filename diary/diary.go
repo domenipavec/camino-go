@@ -599,7 +599,8 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		First(&entry, chi.URLParam(r, "diaryID"))
 
 	if err := query.Error; err != nil {
-		c.render.Error(w, r, err)
+		// TODO: handle record not found with 404
+		c.render.Error(w, r, errors.Wrap(err, "could not get diary entry"))
 		return
 	}
 
