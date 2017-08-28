@@ -1,0 +1,17 @@
+{% extends "diary_base.html" %}
+
+{% block title %}Naroči se{% endblock %}
+
+{% block content %}
+<form action="/diary/subscribe" method="POST">
+{{ csrf_token }}
+
+<div class="form-group">
+    <label for="title">Email</label>
+    <input type="email" class="form-control" id="email" name="email" placeholder="Email" value="{% if user %}{{ user.Email }}{% endif %}" required>
+</div>
+
+<button type="submit" class="btn btn-primary">Naroči se!</button>
+
+</form>
+{% endblock %}

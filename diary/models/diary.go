@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/matematik7/gongo/authorization"
 	"github.com/matematik7/gongo/files"
+	uuid "github.com/satori/go.uuid"
 )
 
 var location *time.Location
@@ -67,4 +68,14 @@ type EntryUserRead struct {
 type Workout struct {
 	ID          string
 	Description string
+}
+
+type Subscription struct {
+	ID    uuid.UUID
+	Email string `valid:"email"`
+}
+
+func (s *Subscription) BeforeCreate(scope *gorm.Scope) error {
+	scope.SetColumn("ID", uuid.NewV4())
+	return nil
 }

@@ -103,6 +103,7 @@ func (c Diary) Resources() []interface{} {
 		&models.DiaryEntry{},
 		&models.Comment{},
 		&models.EntryUserRead{},
+		&models.Subscription{},
 	}
 }
 
@@ -186,6 +187,9 @@ func (c *Diary) ServeMux() http.Handler {
 
 	router.Get("/read", c.ReadHandler)
 
+	router.Get("/subscribe", c.SubscribeHandler)
+	router.Post("/subscribe", c.SubscribeHandler)
+
 	router.Get("/new", c.EditHandler)
 	router.Post("/new", c.EditHandler)
 
@@ -251,6 +255,49 @@ func (c *Diary) PublishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/diary/%d", diaryEntry.ID), http.StatusFound)
+}
+
+func (c *Diary) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
+	subpage := "Naroči se"
+
+	if r.Method == "POST" {
+		count := 0
+		email := r.FormValue("email")
+		if err := c.DB.Model(&models.Subscription{}).Where("email = ?", email).Count(&count).Error; err != nil {
+			c.render.Error(w, r, err)
+			return
+		}
+
+		if count == 1 {
+			c.render.AddFlash(w, r, FlashError("S tem email naslovom ste že naročeni!"))
+			http.Redirect(w, r, "/diary", http.StatusFound)
+			return
+		}
+
+		subscription := models.Subscription{
+			Email: email,
+		}
+
+		if err := c.DB.Create(&subscription).Error; err != nil {
+			if _, ok := err.(govalidator.Errors); ok {
+				// this path propagates down to re-render the form
+				c.render.AddFlash(w, r, FlashError("Neveljaven email naslov!"))
+			} else {
+				c.render.Error(w, r, err)
+				return
+			}
+		} else {
+			c.render.AddFlash(w, r, FlashInfo("Uspešno ste naročeni!"))
+			http.Redirect(w, r, "/diary", http.StatusFound)
+			return
+		}
+	}
+
+	context := render.Context{
+		"subpage": subpage,
+	}
+
+	c.render.Template(w, r, "diary_subscribe.html", context)
 }
 
 func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
