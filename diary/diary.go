@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	mailgun "gopkg.in/mailgun/mailgun-go.v1"
+
 	"googlemaps.github.io/maps"
 
 	"github.com/asaskevich/govalidator"
@@ -23,6 +25,7 @@ import (
 	"github.com/matematik7/gongo/render"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	polyline "github.com/twpayne/go-polyline"
 
@@ -38,6 +41,8 @@ type Diary struct {
 	files     *files.Files
 	endomondo *endomondo.Client
 	maps      *maps.Client
+	log       *logrus.Logger
+	mg        mailgun.Mailgun
 }
 
 func New() *Diary {
@@ -49,6 +54,9 @@ func (c *Diary) Configure(app gongo.App) error {
 	c.render = app["Render"].(*render.Render)
 	c.files = app["Files"].(*files.Files)
 	c.endomondo = app["Endomondo"].(*endomondo.Client)
+	c.log = app["Log"].(*logrus.Logger)
+
+	c.mg = mailgun.NewMailgun("ipavec.net", viper.GetString("mailgun_apikey"), viper.GetString("mailgun_publicapikey"))
 
 	c.render.AddTemplates(packr.NewBox("./templates"))
 
@@ -103,7 +111,6 @@ func (c Diary) Resources() []interface{} {
 		&models.DiaryEntry{},
 		&models.Comment{},
 		&models.EntryUserRead{},
-		&models.Subscription{},
 	}
 }
 
@@ -219,7 +226,7 @@ func (c *Diary) ServeMux() http.Handler {
 
 func (c *Diary) PublishHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
-	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	query := c.DB.Preload("Author").First(&diaryEntry, chi.URLParam(r, "diaryID"))
 	if query.RecordNotFound() {
 		// TODO: add not found to render
 		c.render.Error(w, r, errors.New("Not found"))
@@ -249,6 +256,24 @@ func (c *Diary) PublishHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	txt := `Živjo,
+%s je na camino spletni strani objavil: %s
+Preberi več: https://camino.ipavec.net/diary/%d
+
+Lep pozdrav
+
+Odjava od prejemanja teh sporočil:
+%%mailing_list_unsubscribe_url%%`
+
+	txt = fmt.Sprintf(txt, diaryEntry.Author.DisplayName(), diaryEntry.Title, diaryEntry.ID)
+
+	msg := c.mg.NewMessage("camino@ipavec.net", "Nova objava na camino.ipavec.net", txt, "camino-subscribers@ipavec.net")
+	_, _, err := c.mg.Send(msg)
+	if err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
 	if err := c.render.AddFlash(w, r, FlashInfo("Vnos objavljen!")); err != nil {
 		c.render.Error(w, r, errors.Wrap(err, "could not set flash"))
 		return
@@ -261,35 +286,21 @@ func (c *Diary) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
 	subpage := "Naroči se"
 
 	if r.Method == "POST" {
-		count := 0
 		email := r.FormValue("email")
-		if err := c.DB.Model(&models.Subscription{}).Where("email = ?", email).Count(&count).Error; err != nil {
-			c.render.Error(w, r, err)
-			return
-		}
-
-		if count == 1 {
-			c.render.AddFlash(w, r, FlashError("S tem email naslovom ste že naročeni!"))
-			http.Redirect(w, r, "/diary", http.StatusFound)
-			return
-		}
-
-		subscription := models.Subscription{
-			Email: email,
-		}
-
-		if err := c.DB.Create(&subscription).Error; err != nil {
-			if _, ok := err.(govalidator.Errors); ok {
-				// this path propagates down to re-render the form
-				c.render.AddFlash(w, r, FlashError("Neveljaven email naslov!"))
-			} else {
-				c.render.Error(w, r, err)
-				return
-			}
+		if !govalidator.IsEmail(email) {
+			c.render.AddFlash(w, r, FlashError("Neveljaven email naslov!"))
 		} else {
-			c.render.AddFlash(w, r, FlashInfo("Uspešno ste naročeni!"))
-			http.Redirect(w, r, "/diary", http.StatusFound)
-			return
+			err := c.mg.CreateMember(true, "camino-subscribers@ipavec.net", mailgun.Member{
+				Address:    email,
+				Subscribed: mailgun.Subscribed,
+			})
+			if err != nil {
+				c.log.Error(err.Error())
+				c.render.AddFlash(w, r, FlashError("Nekaj je šlo narobe, poskusite znova!"))
+			} else {
+				c.render.AddFlash(w, r, FlashInfo("Uspešno ste naročeni!"))
+				http.Redirect(w, r, "/diary", http.StatusFound)
+			}
 		}
 	}
 
