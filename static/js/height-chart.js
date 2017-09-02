@@ -9,11 +9,22 @@ function displayHeightChart () {
 	dataTable.addColumn('number', 'Razdalja');
 	dataTable.addColumn('number', 'Višina');
 
-	$.each(heightChartData, function (index, value) {
+
+    var decimation = Math.floor(heightChartData.length / 50);
+    var average = 0;
+    for (var i = 1; i < heightChartData.length; i++) {
+        average += parseFloat(heightChartData[i].elevation)
+        if (i % decimation !== 0) {
+            continue;
+        }
+        average /= decimation;
+        var value = heightChartData[i];
 		if (value.elevation !== 0.0) {
-			dataTable.addRow([{v: parseFloat(value.dist), f: parseFloat(value.dist).toFixed(1) + ' km'}, {v: parseFloat(value.elevation), f: parseFloat(value.elevation).toFixed(1) + ' m'}]);
+			dataTable.addRow([{v: parseFloat(value.dist), f: parseFloat(value.dist).toFixed(1) + ' km'}, {v: average, f: average.toFixed(1) + ' m'}]);
 		}
-	});
+
+        average = 0;
+	}
 
 	// Set chart options
 	var options = {
