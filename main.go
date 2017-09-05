@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/evalphobia/logrus_sentry"
 	"github.com/flosch/pongo2"
@@ -123,7 +124,9 @@ func main() {
 	Render := render.New(isProd)
 	Admin := admin.New("/admin")
 
-	AwsSession, err := session.NewSession()
+	AwsSession, err := session.NewSession(
+		aws.NewConfig().WithRegion("eu-central-1"),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
