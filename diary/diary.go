@@ -213,8 +213,7 @@ func (c *Diary) ServeMux() http.Handler {
 			r.Get("/", c.PicturesHandler)
 			r.Post("/", c.AddPictureHandler)
 
-			// r.Route("/{imageID:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}}", func(r chi.Router) {
-			r.Route("/{imageID:[0-9a-f]+}", func(r chi.Router) {
+			r.Route("/{imageID:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}}", func(r chi.Router) {
 				r.Delete("/", c.DeletePictureHandler)
 				r.Get("/delete", c.DeletePictureHandler)
 			})
