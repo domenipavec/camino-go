@@ -699,7 +699,7 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 
 	var totalDistance []float64
 	query = c.DB.Model(&models.DiaryEntry{}).
-		Select("SUM(gd1.length) as total_distance").
+		Select("COALESCE(SUM(gd1.length), 0) as total_distance").
 		Where("date_part('year', diary_entries.created_at) = ?", entry.CreatedAt.Year()).
 		Where("diary_entries.created_at <= ?", entry.CreatedAt).
 		Joins("LEFT JOIN map_entries me1 ON diary_entries.map_entry_id = me1.id").
