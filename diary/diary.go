@@ -697,6 +697,25 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var totalDistance []float64
+	query = c.DB.Model(&models.DiaryEntry{}).
+		Select("SUM(gd1.length) as total_distance").
+		Where("date_part('year', diary_entries.created_at) = ?", entry.CreatedAt.Year()).
+		Where("diary_entries.created_at <= ?", entry.CreatedAt).
+		Joins("LEFT JOIN map_entries me1 ON diary_entries.map_entry_id = me1.id").
+		Joins("LEFT JOIN gps_data gd1 ON me1.gps_data_id = gd1.id").
+		Pluck("total_distance", &totalDistance)
+
+	if err := query.Error; err != nil {
+		c.render.Error(w, r, errors.Wrap(err, "could not get total distance"))
+		return
+	}
+
+	if len(totalDistance) != 1 {
+		c.render.Error(w, r, errors.Errorf("invalid total distance len %d", len(totalDistance)))
+		return
+	}
+
 	// Mark as read if logged in
 	if user := r.Context().Value("user"); user != nil {
 		user := user.(authorization.User)
@@ -719,9 +738,10 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	context := render.Context{
-		"entry":       entry,
-		"browser_key": viper.GetString("GMAP_BROWSER_KEY"),
-		"CanEdit":     c.CanEdit,
+		"entry":          entry,
+		"browser_key":    viper.GetString("GMAP_BROWSER_KEY"),
+		"total_distance": totalDistance[0],
+		"CanEdit":        c.CanEdit,
 	}
 
 	c.render.Template(w, r, "diary_one.html", context)

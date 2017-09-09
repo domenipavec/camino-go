@@ -46,6 +46,12 @@
                 <i class="fa fa-chart-area"></i> {{ entry.MapEntry.GpsData.AvgSpeed | floatformat }} km/h
             </p>
         {% endif %}
+        {% if total_distance > 0 %}
+            <p title="Razdalja od zacetka poti">
+                <b class="sr-only">Razdalja od zacetka poti:</b>
+                <i class="fa fa-arrow-alt-from-left"></i> {{ total_distance | floatformat }} km
+            </p>
+        {% endif %}
     {% endif %}
     <div class="clear"></div>
 </div>
