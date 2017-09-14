@@ -583,7 +583,11 @@ func (c *Diary) AddPictureHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *Diary) PicturesHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
-	query := c.DB.Preload("Images").First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	query := c.DB.
+		Preload("Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("images.created_at")
+		}).
+		First(&diaryEntry, chi.URLParam(r, "diaryID"))
 	if query.RecordNotFound() {
 		// TODO: add not found to render
 		c.render.Error(w, r, errors.New("Not found"))
@@ -688,7 +692,9 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		}).
 		Preload("Comments.Author").
 		Preload("MapEntry.GpsData").
-		Preload("Images").
+		Preload("Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("images.created_at")
+		}).
 		First(&entry, chi.URLParam(r, "diaryID"))
 
 	if err := query.Error; err != nil {
