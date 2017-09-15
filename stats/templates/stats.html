@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Statistika za {{ year }}{% endblock %}
+
+{% block content %}
+<h3>Prehojeni kilometri</h3>
+<ul>
+    <li>Skupaj: {{ distances | sum | floatformat }} km</li>
+    <li>Povprecno na dan: {{ distances | average | floatformat }} km</li>
+</ul>
+{% if times | sum > 0 %}
+    <h3>Cas hoje</h3>
+    <ul>
+        <li>Skupaj: {{ times | sum | durationformat }}</li>
+        <li>Povprecno na dan: {{ times | average | durationformat }}</li>
+    </ul>
+{% endif %}
+{% if speeds | sum > 0 %}
+    <h3>Povprecna hitrost</h3>
+    <ul>
+        <li>Povprecna hitrost: {{ speeds | average | floatformat }} km/h</li>
+    </ul>
+{% endif %}
+{% endblock %}

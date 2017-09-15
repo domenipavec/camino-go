@@ -67,6 +67,20 @@ $(function () {
                     </ul>
                 </li>
                 <li><a href="/map"{% if request.Path == '/map' %} class="active"{% endif %}>Zemljevid</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle{% if request.Path == '/stats' %} active{% endif %}" data-toggle="dropdown" role="button" aria-expanded="false">
+                        Statistika <span class="caret"></span>
+                    </a>
+                    <ul class="dropdown-menu" role="menu">
+                        {% for statsYear in statsYears %}
+                            <li{% if statsYear == year %} class="active"{% endif %}>
+                                <a href="/stats/{{ statsYear }}" title="Statistika za leto {{ statsYear }}">
+                                    {{ statsYear }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </li>
                 <li><a href="/camino"{% if request.Path == '/camino' %} class="active"{% endif %}>Camino</a></li>
                 <li><a href="/gallery"{% if request.Path == '/gallery' %} class="active"{% endif %}>Galerija</a></li>
                 <li><a href="/links"{% if request.Path == '/links' %} class="active"{% endif %}>Povezave</a></li>

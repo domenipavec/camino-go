@@ -24,6 +24,7 @@ import (
 	"github.com/matematik7/camino-go/links"
 	"github.com/matematik7/camino-go/maps"
 	"github.com/matematik7/camino-go/pages"
+	"github.com/matematik7/camino-go/stats"
 	"github.com/matematik7/gongo"
 	"github.com/matematik7/gongo/admin"
 	"github.com/matematik7/gongo/authentication"
@@ -144,6 +145,7 @@ func main() {
 	CaminoPage := pages.New(1)
 	Maps := maps.New()
 	Gallery := gallery.New()
+	Stats := stats.New()
 
 	Endomondo, err := endomondo.New(viper.GetString("ENDOMONDO_EMAIL"), viper.GetString("ENDOMONDO_PASSWORD"))
 	if err != nil {
@@ -166,6 +168,7 @@ func main() {
 		"CaminoPage": CaminoPage,
 		"Maps":       Maps,
 		"Gallery":    Gallery,
+		"Stats":      Stats,
 
 		"Endomondo": Endomondo,
 	}
@@ -211,11 +214,12 @@ func main() {
 		))
 
 		r.Mount("/diary", Diary.ServeMux())
-		r.Mount("/", Diary.ServeMux())
 		r.Mount("/links", Links)
 		r.Mount("/camino", CaminoPage)
 		r.Mount("/map", Maps.ServeMux())
 		r.Mount("/gallery", Gallery.ServeMux())
+		r.Mount("/stats", Stats.ServeMux())
+		r.Mount("/", Diary.ServeMux())
 	})
 
 	r.Mount("/static", http.StripPrefix("/static", http.FileServer(packr.NewBox("./static"))))
