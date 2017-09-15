@@ -101,6 +101,7 @@ func (c *Stats) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		speeds[i] = gpsData[i].AvgSpeed
 	}
 
+	// TODO: separate year to fix active year marker
 	context := render.Context{
 		"year":      year,
 		"distances": distances,
