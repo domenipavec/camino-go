@@ -12,18 +12,25 @@ function displayHeightChart () {
 
     var decimation = Math.floor(heightChartData.length / 50);
     var average = 0;
+    var divisor = decimation;
     for (var i = 1; i < heightChartData.length; i++) {
-        average += parseFloat(heightChartData[i].elevation)
+        var value = heightChartData[i];
+		if (value.elevation === 0.0) {
+            divisor--;
+            continue;
+        }
+
+        average += parseFloat(value.elevation)
         if (i % decimation !== 0) {
             continue;
         }
-        average /= decimation;
-        var value = heightChartData[i];
-		if (value.elevation !== 0.0) {
-			dataTable.addRow([{v: parseFloat(value.dist), f: parseFloat(value.dist).toFixed(1) + ' km'}, {v: average, f: average.toFixed(1) + ' m'}]);
-		}
+
+        average /= divisor;
+
+        dataTable.addRow([{v: parseFloat(value.dist), f: parseFloat(value.dist).toFixed(1) + ' km'}, {v: average, f: average.toFixed(1) + ' m'}]);
 
         average = 0;
+        divisor = decimation;
 	}
 
 	// Set chart options
