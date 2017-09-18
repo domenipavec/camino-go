@@ -3,22 +3,56 @@
 {% block title %}Statistika za {{ year }}{% endblock %}
 
 {% block content %}
-<h3>Prehojeni kilometri</h3>
-<ul>
-    <li>Skupaj: {{ distances | sum | floatformat }} km</li>
-    <li>Povprecno na dan: {{ distances | average | floatformat }} km</li>
-</ul>
+<script type="text/javascript" src="//www.google.com/jsapi"></script>
+<script src="/static/js/stats.js"></script>
+<script type="text/javascript">
+var statsData = [{
+    id: '#distance',
+    title: 'Prehojeni kilometri',
+    unit: 'km',
+    data: [{% for d in distances %}{{ d }}, {% endfor %}],
 {% if times | sum > 0 %}
+}, {
+    id: '#time',
+    title: 'Cas hoje',
+    unit: 'ur',
+    data: [{% for t in times %}{{ t/3600 }}, {% endfor %}],
+{% endif %}
+{% if speeds | sum > 0 %}
+}, {
+    id: '#speed',
+    title: 'Povprecna hitrost',
+    unit: 'km/h',
+    data: [{% for s in speeds %}{{ s }}, {% endfor %}],
+{% endif %}
+}];
+</script>
+<div class="row">
+<div class="col-sm-6 col-xs-12">
+    <h3>Prehojeni kilometri</h3>
+    <ul>
+        <li>Skupaj: {{ distances | sum | floatformat }} km</li>
+        <li>Povprecno na dan: {{ distances | average | floatformat }} km</li>
+    </ul>
+</div>
+<div class="col-sm-6 col-xs-12"><div id="distance" class="stats-graph"></div></div>
+{% if times | sum > 0 %}
+<div class="col-sm-6 col-xs-12">
     <h3>Cas hoje</h3>
     <ul>
         <li>Skupaj: {{ times | sum | durationformat }}</li>
         <li>Povprecno na dan: {{ times | average | durationformat }}</li>
     </ul>
+</div>
+<div class="col-sm-6 col-xs-12"><div id="time" class="stats-graph"></div></div>
 {% endif %}
 {% if speeds | sum > 0 %}
+<div class="col-sm-6 col-xs-12">
     <h3>Povprecna hitrost</h3>
     <ul>
         <li>Povprecna hitrost: {{ speeds | average | floatformat }} km/h</li>
     </ul>
+</div>
+<div class="col-sm-6 col-xs-12"><div id="speed" class="stats-graph"></div></div>
 {% endif %}
 {% endblock %}

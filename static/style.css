@@ -230,3 +230,9 @@ textarea {
     text-align: center;
     color: #666;
 }
+
+/* stats */
+.stats-graph {
+	border: 1px solid #000;
+	margin-bottom: 10px;
+}
