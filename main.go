@@ -208,9 +208,7 @@ func main() {
 			csrf.HttpOnly(true),
 			csrf.Secure(isProd),
 			csrf.FieldName("csrfmiddlewaretoken"),
-			csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				Render.Error(w, r, errors.New("Forbidden")) // TODO: move this handler to render
-			})),
+			csrf.ErrorHandler(http.HandlerFunc(Render.Forbidden)),
 		))
 
 		r.Mount("/diary", Diary.ServeMux())
@@ -224,22 +222,8 @@ func main() {
 
 	r.Mount("/static", http.StripPrefix("/static", http.FileServer(packr.NewBox("./static"))))
 
-	//TODO: Move these handlers to render
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		Render.Template(w, r, "error.html", render.Context{
-			"title": "Not Found",
-			"msg":   "This is not the web page you are looking for.",
-		})
-	})
-
-	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		Render.Template(w, r, "error.html", render.Context{
-			"title": "Method Not Allowed",
-			"msg":   "Your position's correct, except... not this method.",
-		})
-	})
+	r.NotFound(Render.NotFound)
+	r.MethodNotAllowed(Render.MethodNotAllowed)
 
 	http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), r)
 }

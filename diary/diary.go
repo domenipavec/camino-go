@@ -227,8 +227,7 @@ func (c *Diary) PublishHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
 	query := c.DB.Preload("Author").First(&diaryEntry, chi.URLParam(r, "diaryID"))
 	if query.RecordNotFound() {
-		// TODO: add not found to render
-		c.render.Error(w, r, errors.New("Not found"))
+		c.render.NotFound(w, r)
 		return
 	} else if query.Error != nil {
 		c.render.Error(w, r, query.Error)
@@ -236,8 +235,7 @@ func (c *Diary) PublishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
-		// TODO: add forbidden to render
-		c.render.Error(w, r, errors.New("Forbidden"))
+		c.render.Forbidden(w, r)
 		return
 	}
 
@@ -324,13 +322,12 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 		subpage = "Urejanje"
 
 		if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
-			// TODO: add forbidden to render
-			c.render.Error(w, r, errors.New("Forbidden"))
+			c.render.Forbidden(w, r)
 			return
 		}
 	} else {
 		if !c.CanCreate(r.Context().Value("user")) {
-			c.render.Error(w, r, errors.New("Forbidden"))
+			c.render.Forbidden(w, r)
 			return
 		}
 	}
@@ -488,8 +485,7 @@ func (c *Diary) DeletePictureHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
 	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
 	if query.RecordNotFound() {
-		// TODO: add not found to render
-		c.render.Error(w, r, errors.New("Not found"))
+		c.render.NotFound(w, r)
 		return
 	} else if query.Error != nil {
 		c.render.Error(w, r, query.Error)
@@ -497,8 +493,7 @@ func (c *Diary) DeletePictureHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
-		// TODO: add forbidden to render
-		c.render.Error(w, r, errors.New("Forbidden"))
+		c.render.Forbidden(w, r)
 		return
 	}
 
@@ -536,8 +531,7 @@ func (c *Diary) AddPictureHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
 	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
 	if query.RecordNotFound() {
-		// TODO: add not found to render
-		c.render.Error(w, r, errors.New("Not found"))
+		c.render.NotFound(w, r)
 		return
 	} else if query.Error != nil {
 		c.render.Error(w, r, query.Error)
@@ -545,8 +539,7 @@ func (c *Diary) AddPictureHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
-		// TODO: add forbidden to render
-		c.render.Error(w, r, errors.New("Forbidden"))
+		c.render.Forbidden(w, r)
 		return
 	}
 
@@ -589,8 +582,7 @@ func (c *Diary) PicturesHandler(w http.ResponseWriter, r *http.Request) {
 		}).
 		First(&diaryEntry, chi.URLParam(r, "diaryID"))
 	if query.RecordNotFound() {
-		// TODO: add not found to render
-		c.render.Error(w, r, errors.New("Not found"))
+		c.render.NotFound(w, r)
 		return
 	} else if query.Error != nil {
 		c.render.Error(w, r, query.Error)
@@ -598,8 +590,7 @@ func (c *Diary) PicturesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !c.CanEdit(diaryEntry, r.Context().Value("user")) {
-		// TODO: add forbidden to render
-		c.render.Error(w, r, errors.New("Forbidden"))
+		c.render.Forbidden(w, r)
 		return
 	}
 
@@ -615,9 +606,7 @@ func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
 	//TODO: move this get user to authorization to perform interface is nil validation and have proper context key
 	userItf := r.Context().Value("user")
 	if userItf == nil {
-		//TODO: Add forbidden and not found to render
-		// We DO need to see your identification.
-		c.render.Error(w, r, errors.New("Forbidden"))
+		c.render.Forbidden(w, r)
 		return
 	}
 	user := userItf.(authorization.User)
@@ -625,8 +614,7 @@ func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
 	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
 	if query.RecordNotFound() {
-		// TODO: add not found to render
-		c.render.Error(w, r, errors.New("Not found"))
+		c.render.NotFound(w, r)
 		return
 	} else if query.Error != nil {
 		c.render.Error(w, r, query.Error)
@@ -664,8 +652,7 @@ func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
 func (c *Diary) ReadHandler(w http.ResponseWriter, r *http.Request) {
 	userItf := r.Context().Value("user")
 	if userItf == nil {
-		//TODO: Add forbidden and not found to render
-		c.render.Error(w, r, errors.New("Forbidden"))
+		c.render.Forbidden(w, r)
 		return
 	}
 	user := userItf.(authorization.User)
@@ -697,8 +684,10 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		}).
 		First(&entry, chi.URLParam(r, "diaryID"))
 
-	if err := query.Error; err != nil {
-		// TODO: handle record not found with 404
+	if query.RecordNotFound() {
+		c.render.NotFound(w, r)
+		return
+	} else if err := query.Error; err != nil {
 		c.render.Error(w, r, errors.Wrap(err, "could not get diary entry"))
 		return
 	}

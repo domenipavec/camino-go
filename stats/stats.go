@@ -1,7 +1,6 @@
 package stats
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -75,8 +74,7 @@ func (c *Stats) ServeMux() http.Handler {
 func (c *Stats) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	year, err := strconv.Atoi(chi.URLParam(r, "year"))
 	if err != nil {
-		// TODO: introduce system not found
-		c.render.Error(w, r, errors.New("Not Found"))
+		c.render.NotFound(w, r)
 		return
 	}
 
