@@ -22,7 +22,7 @@
 <ul class="delete-pics" id="gallery">
 {% for image in entry.Images %}
     <li>
-        <a class="js-gallery-image" href="{{ file_url(image) }}" title="{{ image.Description }}">
+        <a class="js-gallery-image" href="https://thumbnailer.ipavec.net/1920x1080,fit/{{ file_url(image) }}" title="{{ image.Description }}">
                 <img class="styled" src="https://thumbnailer.ipavec.net/200x150/{{ file_url(image) }}" alt="{{ image.Description }}" />
         </a>
         <a class="btn btn-default" href="/diary/{{ entry.ID }}/pictures/{{ image.ID.String() }}/delete" role="button">

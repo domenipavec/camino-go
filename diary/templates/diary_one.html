@@ -19,7 +19,7 @@
     {% if entry.Images %}
     <div class="diary-pictures" id="gallery">
         {% for image in entry.Images %}
-            <a href="{{ file_url(image) }}" title="{{ image.Description }}" class="js-gallery-image">
+            <a href="https://thumbnailer.ipavec.net/1920x1080,fit/{{ file_url(image) }}" title="{{ image.Description }}" class="js-gallery-image">
                 <img src="https://thumbnailer.ipavec.net/150x113/{{ file_url(image) }}" alt="{{ image.Description }}">
             </a>
         {% endfor %}
