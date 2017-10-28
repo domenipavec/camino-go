@@ -5,8 +5,8 @@
 {% block content %}
 <div id="gallery" class="gallery">
 {% for image in images %}
-	<a href="{{ image }}" class="js-gallery-image">
-        <img src="https://thumbnailer.ipavec.net/100x75/{{ image }}">
+	<a href="https://res.cloudinary.com/dvmih7vrf/image/fetch/w_1920,h_1080,c_fit/{{ image }}" class="js-gallery-image">
+        <img src="https://res.cloudinary.com/dvmih7vrf/image/fetch/w_100,h_75,c_fill/{{ image }}">
     </a>
 {% endfor %}
 </div>
