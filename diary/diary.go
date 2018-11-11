@@ -763,7 +763,9 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 			c.render.Error(w, r, query.Error)
 			return
 		}
-		yearStr = strconv.Itoa(year[0])
+		if len(year) > 0 {
+			yearStr = strconv.Itoa(year[0])
+		}
 	}
 
 	query := c.DB.Model(&models.DiaryEntry{}).

@@ -173,16 +173,16 @@ func main() {
 		"Endomondo": Endomondo,
 	}
 
-	if err := app.Configure(); err != nil {
-		log.Fatalln(err)
-	}
-
 	for _, itf := range app {
 		if resourcer, ok := itf.(gongo.Resourcer); ok {
 			if err := DB.AutoMigrate(resourcer.Resources()...).Error; err != nil {
 				log.Fatal(errors.Wrap(err, "could not auto migrate models"))
 			}
 		}
+	}
+
+	if err := app.Configure(); err != nil {
+		log.Fatalln(err)
 	}
 
 	r := chi.NewRouter()
@@ -225,7 +225,9 @@ func main() {
 	r.NotFound(Render.NotFound)
 	r.MethodNotAllowed(Render.MethodNotAllowed)
 
-	http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), r)
+	serveAddr := fmt.Sprintf("%s:%d", host, port)
+	log.Printf("Serving on %s", serveAddr)
+	http.ListenAndServe(serveAddr, r)
 }
 
 func NewStructuredLogger(logger *logrus.Logger) func(next http.Handler) http.Handler {
