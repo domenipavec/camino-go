@@ -5,7 +5,8 @@ WORKDIR /go/src/github.com/matematik7/camino-go/
 RUN go get github.com/gobuffalo/packr/...
 
 COPY . .
-RUN go-wrapper download
+RUN go get -d -v ./...
+RUN go install -v ./...
 
 RUN CGO_ENABLED=0 GOOS=linux packr build
 
