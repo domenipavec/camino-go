@@ -225,7 +225,14 @@ func (c *Diary) ServeMux() http.Handler {
 
 func (c *Diary) PublishHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
-	query := c.DB.Preload("Author").First(&diaryEntry, chi.URLParam(r, "diaryID"))
+
+	id, err := strconv.Atoi(chi.URLParam(r, "diaryID"))
+	if err != nil {
+		c.render.NotFound(w, r)
+		return
+	}
+
+	query := c.DB.Preload("Author").First(&diaryEntry, id)
 	if query.RecordNotFound() {
 		c.render.NotFound(w, r)
 		return
@@ -265,8 +272,7 @@ Odjava od prejemanja teh sporočil:
 	txt = fmt.Sprintf(txt, diaryEntry.Author.DisplayName(), diaryEntry.Title, diaryEntry.ID)
 
 	msg := c.mg.NewMessage("camino@ipavec.net", "Nova objava na camino.ipavec.net", txt, "camino-subscribers@ipavec.net")
-	_, _, err := c.mg.Send(msg)
-	if err != nil {
+	if _, _, err := c.mg.Send(msg); err != nil {
 		c.render.Error(w, r, err)
 		return
 	}
@@ -314,7 +320,13 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 	subpage := "Nov vnos"
 
 	if entryID != "" {
-		query := c.DB.Preload("MapEntry.GpsData").First(&diaryEntry, entryID)
+		id, err := strconv.Atoi(chi.URLParam(r, "diaryID"))
+		if err != nil {
+			c.render.NotFound(w, r)
+			return
+		}
+
+		query := c.DB.Preload("MapEntry.GpsData").First(&diaryEntry, id)
 		if !query.RecordNotFound() && query.Error != nil {
 			c.render.Error(w, r, query.Error)
 			return
@@ -483,7 +495,12 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *Diary) DeletePictureHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
-	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	diaryID, err := strconv.Atoi(chi.URLParam(r, "diaryID"))
+	if err != nil {
+		c.render.NotFound(w, r)
+		return
+	}
+	query := c.DB.First(&diaryEntry, diaryID)
 	if query.RecordNotFound() {
 		c.render.NotFound(w, r)
 		return
@@ -529,7 +546,12 @@ func (c *Diary) DeletePictureHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *Diary) AddPictureHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
-	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	id, err := strconv.Atoi(chi.URLParam(r, "diaryID"))
+	if err != nil {
+		c.render.NotFound(w, r)
+		return
+	}
+	query := c.DB.First(&diaryEntry, id)
 	if query.RecordNotFound() {
 		c.render.NotFound(w, r)
 		return
@@ -576,11 +598,18 @@ func (c *Diary) AddPictureHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *Diary) PicturesHandler(w http.ResponseWriter, r *http.Request) {
 	diaryEntry := models.DiaryEntry{}
+
+	id, err := strconv.Atoi(chi.URLParam(r, "diaryID"))
+	if err != nil {
+		c.render.NotFound(w, r)
+		return
+	}
+
 	query := c.DB.
 		Preload("Images", func(db *gorm.DB) *gorm.DB {
 			return db.Order("images.created_at")
 		}).
-		First(&diaryEntry, chi.URLParam(r, "diaryID"))
+		First(&diaryEntry, id)
 	if query.RecordNotFound() {
 		c.render.NotFound(w, r)
 		return
@@ -612,7 +641,12 @@ func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
 	user := userItf.(authorization.User)
 
 	diaryEntry := models.DiaryEntry{}
-	query := c.DB.First(&diaryEntry, chi.URLParam(r, "diaryID"))
+	id, err := strconv.Atoi(chi.URLParam(r, "diaryID"))
+	if err != nil {
+		c.render.NotFound(w, r)
+		return
+	}
+	query := c.DB.First(&diaryEntry, id)
 	if query.RecordNotFound() {
 		c.render.NotFound(w, r)
 		return
@@ -627,7 +661,7 @@ func (c *Diary) CommentHandler(w http.ResponseWriter, r *http.Request) {
 		Comment:      r.FormValue("comment"),
 	}
 
-	err := c.DB.Save(&comment).Error
+	err = c.DB.Save(&comment).Error
 	if err != nil {
 		// TODO: figure better way for handling validation errors for bigger forms
 		if _, ok := err.(govalidator.Errors); ok {
@@ -673,7 +707,13 @@ func (c *Diary) ReadHandler(w http.ResponseWriter, r *http.Request) {
 func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	var entry models.DiaryEntry
 
-	query := c.DB.Preload("Author").
+	id, err := strconv.Atoi(chi.URLParam(r, "diaryID"))
+	if err != nil {
+		c.render.NotFound(w, r)
+		return
+	}
+
+	query := c.DB.Preload("Author").LogMode(true).
 		Preload("Comments", func(db *gorm.DB) *gorm.DB {
 			return db.Order("comments.created_at desc")
 		}).
@@ -682,7 +722,7 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		Preload("Images", func(db *gorm.DB) *gorm.DB {
 			return db.Order("images.created_at")
 		}).
-		First(&entry, chi.URLParam(r, "diaryID"))
+		First(&entry, id)
 
 	if query.RecordNotFound() {
 		c.render.NotFound(w, r)
