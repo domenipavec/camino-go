@@ -388,15 +388,18 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			dataEntries := make([]models.DataEntry, len(response.Points.Points))
-			for i, point := range response.Points.Points {
-				dataEntries[i] = models.DataEntry{
+			dataEntries := make([]models.DataEntry, 0, len(response.Points.Points))
+			for _, point := range response.Points.Points {
+				if point.Latitude == 0 || point.Longitude == 0 {
+					continue
+				}
+				dataEntries = append(dataEntries, models.DataEntry{
 					Time:      point.Time,
 					Latitude:  point.Latitude,
 					Longitude: point.Longitude,
 					Elevation: point.Altitude,
 					Distance:  point.Distance,
-				}
+				})
 			}
 			dataJSON, err := json.Marshal(dataEntries)
 			if err != nil {
