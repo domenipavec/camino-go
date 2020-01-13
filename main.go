@@ -64,6 +64,9 @@ func main() {
 	viper.SetDefault("psql_user", "postgres")
 	viper.SetDefault("psql_password", "postgres")
 
+	viper.SetDefault("images_bucket", "images-camino")
+	viper.SetDefault("subdomain", "camino")
+
 	// TODO: to something similar to goth auto init
 	log := logrus.New()
 
@@ -131,14 +134,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// TODO: make bucket configurable
-	Storage, err := s3storage.New(AwsSession, "images-camino", false)
+	Storage, err := s3storage.New(AwsSession, viper.GetString("images_bucket"), false)
 	if err != nil {
 		log.Fatal(err)
 	}
 	Files := files.New(Storage)
 
 	Render.AddTemplates(packr.NewBox("./templates"))
+	caminoBox := packr.NewBox("./templates-camino")
+	hribiBox := packr.NewBox("./templates-hribi")
+	if viper.GetString("subdomain") == "camino" {
+		Render.AddTemplates(caminoBox)
+	} else if viper.GetString("subdomain") == "hribi" {
+		Render.AddTemplates(hribiBox)
+	}
 
 	Diary := diary.New()
 	Links := links.New()

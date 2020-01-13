@@ -261,17 +261,23 @@ func (c *Diary) PublishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	txt := `Živjo,
-%s je na camino spletni strani objavil: %s
-Preberi več: https://camino.ipavec.net/diary/%d
+%s je na %s spletni strani objavil: %s
+Preberi več: https://%s.ipavec.net/diary/%d
 
 Lep pozdrav
 
 Odjava od prejemanja teh sporočil:
 %%mailing_list_unsubscribe_url%%`
+	subdomain := viper.GetString("subdomain")
 
-	txt = fmt.Sprintf(txt, diaryEntry.Author.DisplayName(), diaryEntry.Title, diaryEntry.ID)
+	txt = fmt.Sprintf(txt, diaryEntry.Author.DisplayName(), subdomain, diaryEntry.Title, subdomain, diaryEntry.ID)
 
-	msg := c.mg.NewMessage("camino@ipavec.net", "Nova objava na camino.ipavec.net", txt, "camino-subscribers@ipavec.net")
+	msg := c.mg.NewMessage(
+		fmt.Sprintf("%s@ipavec.net", subdomain),
+		fmt.Sprintf("Nova objava na %s.ipavec.net", subdomain),
+		txt,
+		fmt.Sprintf("%s-subscribers@ipavec.net", subdomain),
+	)
 	if _, _, err := c.mg.Send(msg); err != nil {
 		c.render.Error(w, r, err)
 		return
@@ -293,7 +299,8 @@ func (c *Diary) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
 		if !govalidator.IsEmail(email) {
 			c.render.AddFlash(w, r, FlashError("Neveljaven email naslov!"))
 		} else {
-			err := c.mg.CreateMember(true, "camino-subscribers@ipavec.net", mailgun.Member{
+			mailingList := fmt.Sprintf("%s-subscribers@ipavec.net", viper.GetString("subdomain"))
+			err := c.mg.CreateMember(true, mailingList, mailgun.Member{
 				Address:    email,
 				Subscribed: mailgun.Subscribed,
 			})

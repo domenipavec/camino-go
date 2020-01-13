@@ -27,7 +27,7 @@ type MapEntry struct {
 }
 
 func (me *MapEntry) BeforeSave() error {
-	if len(me.GpsData.Data) > 0 {
+	if len(me.GpsData.Data) > 0 && me.City == "" {
 		dataEntries := []DataEntry{}
 		err := json.Unmarshal([]byte(me.GpsData.Data), &dataEntries)
 		if err != nil {
@@ -37,7 +37,8 @@ func (me *MapEntry) BeforeSave() error {
 		me.Lat = dataEntries[len(dataEntries)-1].Latitude
 		me.Lon = dataEntries[len(dataEntries)-1].Longitude
 		me.City = me.GpsData.End
-	} else if me.City != "" {
+	}
+	if me.City != "" && me.City != me.GpsData.End {
 		c, err := maps.NewClient(maps.WithAPIKey(viper.GetString("GMAP_SERVER_KEY")))
 		if err != nil {
 			return errors.Wrap(err, "could not get maps client")
