@@ -42,7 +42,7 @@ func main() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	viper.SetDefault("port", 3000)
+	viper.SetDefault("port", 8000)
 	port := viper.GetInt("port")
 
 	viper.SetDefault("host", "localhost")
@@ -196,10 +196,10 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(NewStructuredLogger(log))
+	// r.Use(NewStructuredLogger(log))
 	r.Use(middleware.Recoverer) // TODO: proper error page
 	r.Use(middleware.StripSlashes)
-	r.Use(middleware.DefaultCompress)
+	r.Use(middleware.Compress(5))
 	r.Use(middleware.WithValue("store", store)) // TODO: do we need this anywhere?
 	r.Use(Authorization.Middleware)
 

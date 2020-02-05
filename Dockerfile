@@ -2,13 +2,16 @@ FROM golang:latest
 
 WORKDIR /go/src/github.com/matematik7/camino-go/
 
-RUN go get github.com/gobuffalo/packr/...
+COPY go* /
+RUN go mod download
+RUN go get -u github.com/gobuffalo/packr/packr
 
 COPY . .
-RUN go get -d -v ./...
-RUN go install -v ./...
+RUN GOOS=linux packr build -o /binary
 
-RUN CGO_ENABLED=0 GOOS=linux packr build
+RUN mkdir /deps
+# auto figure out cgo dependencies
+RUN ldd /binary | tr -s '[:blank:]' '\n' | grep '^/' | xargs -L 1 -I % cp --parents % /deps
 
 FROM scratch
 
@@ -16,9 +19,9 @@ WORKDIR /
 
 COPY --from=0 /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=0 /etc/ssl/certs /etc/ssl/certs
-COPY --from=0 /go/src/github.com/qor/admin/views /app/views/qor
-COPY --from=0 /go/src/github.com/matematik7/camino-go/camino-go .
+COPY --from=0 /binary /
+COPY --from=0 /deps /
 
-EXPOSE 3000
+EXPOSE 8000
 
-CMD ["/camino-go"]
+CMD ["/binary"]

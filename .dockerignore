@@ -1,5 +1,7 @@
 .dockerignore
 Dockerfile
 *.yml
+*.yaml
 *.sql
 *.retry
+*.sh

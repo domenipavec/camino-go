@@ -910,6 +910,7 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	context := render.Context{
+		"multiView":  true,
 		"entries":    entries,
 		"hasUnread":  hasUnread,
 		"offset":     offset,

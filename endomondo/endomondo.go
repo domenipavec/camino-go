@@ -22,6 +22,9 @@ const (
 
 type Client struct {
 	client *http.Client
+
+	email    string
+	password string
 }
 
 func New(email, password string) (*Client, error) {
@@ -34,10 +37,8 @@ func New(email, password string) (*Client, error) {
 		client: &http.Client{
 			Jar: jar,
 		},
-	}
-
-	if err := c.Login(email, password); err != nil {
-		return nil, err
+		email:    email,
+		password: password,
 	}
 
 	return c, nil
@@ -112,6 +113,16 @@ func (c *Client) send(method, url string, body, output interface{}) error {
 		return errors.Wrap(err, "could not do request")
 	}
 	defer response.Body.Close()
+
+	if response.StatusCode == http.StatusUnauthorized && url != LOGIN_URL {
+		if err := c.Login(c.email, c.password); err != nil {
+			return err
+		}
+		return c.send(method, url, body, output)
+	}
+	if response.StatusCode/100 != 2 {
+		return errors.Errorf("response %s", response.Status)
+	}
 
 	if output != nil {
 		decoder := json.NewDecoder(response.Body)

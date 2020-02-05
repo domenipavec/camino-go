@@ -1,3 +1,4 @@
 #pattern  filter=crypt diff=crypt
 deploy*.yml filter=crypt diff=crypt
 .env filter=crypt diff=crypt
+kube-*-secrets.yaml filter=crypt diff=crypt
