@@ -6,10 +6,14 @@ COPY go* /
 RUN go mod download
 RUN go get -u github.com/gobuffalo/packr/packr
 
+RUN mkdir /deps
+
+RUN mkdir -p /deps/app/views/qor
+RUN cp -r /go/pkg/mod/github.com/qor/admin*/views/* /deps/app/views/qor
+
 COPY . .
 RUN GOOS=linux packr build -o /binary
 
-RUN mkdir /deps
 # auto figure out cgo dependencies
 RUN ldd /binary | tr -s '[:blank:]' '\n' | grep '^/' | xargs -L 1 -I % cp --parents % /deps
 

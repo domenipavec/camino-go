@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: hribi
-          image: gcr.io/api-project-704693280880/camino:latest
+          image: eu.gcr.io/api-project-704693280880/camino:latest
           resources:
             requests:
               memory: "50Mi"

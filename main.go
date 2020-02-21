@@ -236,7 +236,7 @@ func main() {
 
 	serveAddr := fmt.Sprintf("%s:%d", host, port)
 	log.Printf("Serving on %s", serveAddr)
-	http.ListenAndServe(serveAddr, r)
+	log.Fatal(http.ListenAndServe(serveAddr, r))
 }
 
 func NewStructuredLogger(logger *logrus.Logger) func(next http.Handler) http.Handler {

@@ -3,7 +3,7 @@
 set -e
 
 TS="$(date +%Y-%m-%dT%H-%M-%S)"
-IMAGE="gcr.io/api-project-704693280880/camino"
+IMAGE="eu.gcr.io/api-project-704693280880/camino"
 
 docker pull golang:latest
 docker build -t "$IMAGE:$TS" -t "$IMAGE:latest" .
