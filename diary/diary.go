@@ -321,6 +321,20 @@ func (c *Diary) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
 	c.render.Template(w, r, "diary_subscribe.html", context)
 }
 
+func reverseEntries(entries []models.DataEntry) {
+	startTime := entries[0].Time
+	for i := len(entries)/2 - 1; i >= 0; i-- {
+		opp := len(entries) - 1 - i
+		entries[i], entries[opp] = entries[opp], entries[i]
+	}
+	endTime := entries[0].Time
+	totalDistance := entries[0].Distance
+	for i := range entries {
+		entries[i].Time = startTime.Add(endTime.Sub(entries[i].Time))
+		entries[i].Distance = totalDistance - entries[i].Distance
+	}
+}
+
 func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 	entryID := chi.URLParam(r, "diaryID")
 	diaryEntry := models.DiaryEntry{}
@@ -407,6 +421,10 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 					Elevation: point.Altitude,
 					Distance:  point.Distance,
 				})
+			}
+			// Reverse for mountain biking (going down)
+			if response.Sport == 3 {
+				reverseEntries(dataEntries)
 			}
 			dataJSON, err := json.Marshal(dataEntries)
 			if err != nil {
