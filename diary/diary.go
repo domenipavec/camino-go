@@ -792,10 +792,17 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	mapCenter := struct {
+		Lat float64
+		Lon float64
+	}{}
+	c.DB.Raw("SELECT AVG(lat) as lat, AVG(lon) as lon FROM map_entries").Scan(&mapCenter)
+
 	context := render.Context{
 		"entry":          entry,
 		"browser_key":    viper.GetString("GMAP_BROWSER_KEY"),
 		"total_distance": totalDistance[0],
+		"map_center":     mapCenter,
 		"CanEdit":        c.CanEdit,
 	}
 
