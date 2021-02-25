@@ -19,12 +19,12 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/matematik7/camino-go/diary"
-	"github.com/matematik7/camino-go/endomondo"
 	"github.com/matematik7/camino-go/gallery"
 	"github.com/matematik7/camino-go/links"
 	"github.com/matematik7/camino-go/maps"
 	"github.com/matematik7/camino-go/pages"
 	"github.com/matematik7/camino-go/stats"
+	"github.com/matematik7/camino-go/strava"
 	"github.com/matematik7/gongo"
 	"github.com/matematik7/gongo/admin"
 	"github.com/matematik7/gongo/authentication"
@@ -156,11 +156,6 @@ func main() {
 	Gallery := gallery.New()
 	Stats := stats.New()
 
-	Endomondo, err := endomondo.New(viper.GetString("ENDOMONDO_EMAIL"), viper.GetString("ENDOMONDO_PASSWORD"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	app := gongo.App{
 		"Admin":          Admin,
 		"Authentication": Authentication,
@@ -179,7 +174,7 @@ func main() {
 		"Gallery":    Gallery,
 		"Stats":      Stats,
 
-		"Endomondo": Endomondo,
+		"Strava": strava.New(),
 	}
 
 	for _, itf := range app {

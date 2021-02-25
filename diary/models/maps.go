@@ -72,15 +72,15 @@ type MapGroup struct {
 
 type GpsData struct {
 	gorm.Model
-	Start       string
-	End         string
-	Date        time.Time
-	Length      float64
-	Duration    float64
-	AvgSpeed    float64
-	EndomondoID string
-	Data        string `gorm:"type:text"`
-	MapURL      string
+	Start     string
+	End       string
+	Date      time.Time
+	Length    float64
+	Duration  float64
+	AvgSpeed  float64
+	WorkoutID string `gorm:"column:endomondo_id"`
+	Data      string `gorm:"type:text"`
+	MapURL    string
 }
 
 type DataEntry struct {

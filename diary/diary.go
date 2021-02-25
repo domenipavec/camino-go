@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	mailgun "gopkg.in/mailgun/mailgun-go.v1"
@@ -27,22 +26,22 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	polyline "github.com/twpayne/go-polyline"
+	"github.com/twpayne/go-polyline"
 
 	"github.com/matematik7/camino-go/diary/models"
-	"github.com/matematik7/camino-go/endomondo"
+	"github.com/matematik7/camino-go/strava"
 )
 
 const PerPage = 10
 
 type Diary struct {
-	DB        *gorm.DB
-	render    *render.Render
-	files     *files.Files
-	endomondo *endomondo.Client
-	maps      *maps.Client
-	log       *logrus.Logger
-	mg        mailgun.Mailgun
+	DB     *gorm.DB
+	render *render.Render
+	files  *files.Files
+	maps   *maps.Client
+	log    *logrus.Logger
+	mg     mailgun.Mailgun
+	strava *strava.Service
 }
 
 func New() *Diary {
@@ -53,8 +52,8 @@ func (c *Diary) Configure(app gongo.App) error {
 	c.DB = app["DB"].(*gorm.DB)
 	c.render = app["Render"].(*render.Render)
 	c.files = app["Files"].(*files.Files)
-	c.endomondo = app["Endomondo"].(*endomondo.Client)
 	c.log = app["Log"].(*logrus.Logger)
+	c.strava = app["Strava"].(*strava.Service)
 
 	c.mg = mailgun.NewMailgun("ipavec.net", viper.GetString("mailgun_apikey"), viper.GetString("mailgun_publicapikey"))
 
@@ -386,44 +385,40 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 			diaryEntry.MapEntry.MapGroupID = mapGroupIDs[0]
 		}
 
-		if workout != "" && workout != diaryEntry.MapEntry.GpsData.EndomondoID {
-			idparts := strings.SplitN(workout, "-", 2)
-			if len(idparts) != 2 {
-				c.render.Error(w, r, errors.New("invalid workout id"))
-				return
-			}
-			userID, err := strconv.Atoi(idparts[0])
-			if err != nil {
-				c.render.Error(w, r, err)
-				return
-			}
-			workoutID, err := strconv.Atoi(idparts[1])
+		if workout != "" && workout != diaryEntry.MapEntry.GpsData.WorkoutID {
+			activityID, err := strconv.Atoi(workout)
 			if err != nil {
 				c.render.Error(w, r, err)
 				return
 			}
 
-			response, err := c.endomondo.Workout(userID, workoutID)
+			activity, err := c.strava.Activity(r.Context(), activityID)
 			if err != nil {
 				c.render.Error(w, r, err)
 				return
 			}
 
-			dataEntries := make([]models.DataEntry, 0, len(response.Points.Points))
-			for _, point := range response.Points.Points {
+			points, err := c.strava.ActivityPoints(r.Context(), activityID)
+			if err != nil {
+				c.render.Error(w, r, err)
+				return
+			}
+
+			dataEntries := make([]models.DataEntry, 0, len(points))
+			for _, point := range points {
 				if point.Latitude == 0 || point.Longitude == 0 {
 					continue
 				}
 				dataEntries = append(dataEntries, models.DataEntry{
-					Time:      point.Time,
+					Time:      activity.StartDate.Add(time.Second * time.Duration(point.TimeOffset)),
 					Latitude:  point.Latitude,
 					Longitude: point.Longitude,
 					Elevation: point.Altitude,
-					Distance:  point.Distance,
+					Distance:  point.Distance / 1000,
 				})
 			}
-			// Reverse for mountain biking (going down)
-			if response.Sport == 3 {
+			// Reverse for biking (going down)
+			if activity.Type == "Ride" {
 				reverseEntries(dataEntries)
 			}
 			dataJSON, err := json.Marshal(dataEntries)
@@ -464,11 +459,11 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 
 			diaryEntry.MapEntry.GpsData.Start = start
 			diaryEntry.MapEntry.GpsData.End = end
-			diaryEntry.MapEntry.GpsData.Date = response.StartTime
-			diaryEntry.MapEntry.GpsData.Length = response.Distance
-			diaryEntry.MapEntry.GpsData.Duration = response.Duration
-			diaryEntry.MapEntry.GpsData.AvgSpeed = response.SpeedAvg
-			diaryEntry.MapEntry.GpsData.EndomondoID = workout
+			diaryEntry.MapEntry.GpsData.Date = activity.StartDate
+			diaryEntry.MapEntry.GpsData.Length = activity.Distance / 1000
+			diaryEntry.MapEntry.GpsData.Duration = float64(activity.ElapsedTime)
+			diaryEntry.MapEntry.GpsData.AvgSpeed = activity.AverageSpeed * 3.6
+			diaryEntry.MapEntry.GpsData.WorkoutID = workout
 			diaryEntry.MapEntry.GpsData.Data = string(dataJSON)
 			diaryEntry.MapEntry.GpsData.MapURL = mapURL
 		}
@@ -489,24 +484,21 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	subscriptions, err := c.endomondo.Subscriptions()
+	activities, err := c.strava.RecentActivities(r.Context())
 	if err != nil {
 		c.render.Error(w, r, err)
 		return
 	}
 
 	workouts := []models.Workout{}
-	for _, subscription := range subscriptions.Data {
-		if subscription.ReadableType != "WORKOUT" {
-			continue
-		}
+	for _, activity := range activities {
 		workouts = append(workouts, models.Workout{
-			ID: fmt.Sprintf("%d-%d", subscription.Author.ID, subscription.Workout.ID),
+			ID: strconv.Itoa(activity.ID),
 			Description: fmt.Sprintf("%s: %s %.1f km v %.1f urah",
-				subscription.Author.Name,
-				subscription.Workout.StartTime.Format("2. 1. 2006"),
-				subscription.Workout.Distance,
-				float64(subscription.Workout.Duration)/3600,
+				activity.Name,
+				activity.StartDate.Format("2. 1. 2006"),
+				activity.Distance/1000,
+				float64(activity.ElapsedTime)/3600,
 			),
 		})
 	}

@@ -17,11 +17,11 @@ var browser_key = "{{ browser_key }}";
     <input type="text" class="form-control" id="title" name="title" placeholder="Naslov" value="{{ entry.Title }}" required>
 </div>
 <div class="form-group">
-    <label for="workout">Endomondo</label>
+    <label for="workout">Workout</label>
     <select class="form-control" id="workout" name="workout">
         <option value="">Brez</option>
         {% for workout in workouts %}
-            <option value="{{ workout.ID }}"{% if workout.ID == entry.MapEntry.GpsData.EndomondoID %} selected{% endif %}>
+            <option value="{{ workout.ID }}"{% if workout.ID == entry.MapEntry.GpsData.WorkoutID %} selected{% endif %}>
                 {{ workout.Description }}
             </option>
         {% endfor %}
