@@ -3,6 +3,7 @@
 Code for:
 https://camino.ipavec.net
 https://hribi.ipavec.net
+https://darts.ipavec.net
 
 For running locally you need qor admin views in `views/qor/`.
 

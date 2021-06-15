@@ -143,10 +143,13 @@ func main() {
 	Render.AddTemplates(packr.NewBox("./templates"))
 	caminoBox := packr.NewBox("./templates-camino")
 	hribiBox := packr.NewBox("./templates-hribi")
+	dartsBox := packr.NewBox("./templates-darts")
 	if viper.GetString("subdomain") == "camino" {
 		Render.AddTemplates(caminoBox)
 	} else if viper.GetString("subdomain") == "hribi" {
 		Render.AddTemplates(hribiBox)
+	} else if viper.GetString("subdomain") == "darts" {
+		Render.AddTemplates(dartsBox)
 	}
 
 	Diary := diary.New()
