@@ -39,7 +39,7 @@ var gpsData = {
                                 {% if entry.DiaryEntry.Images %}
                                 {% for image in entry.DiaryEntry.Images %}
                                     <a href="/diary/{{ entry.DiaryEntry.ID }}" title="{{ image.Description }}">
-                                        <img src="https://res.cloudinary.com/dvmih7vrf/image/fetch/w_200,h_100,c_fill/{{ file_url(image) }}" alt="{{ image.Description }}" class="styled">
+                                        <img src="https://res.cloudinary.com/dvmih7vrf/image/fetch/w_200,h_100,c_fill/{{ file_url(image) }}" alt="{{ image.Description }}">
                                     </a>
                                 {% endfor %}
                                 {% endif %}
