@@ -15,6 +15,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var NoTokenError = errors.New("current user doesn't have strava access tokens")
+
 type Service struct {
 	DB *gorm.DB
 }
@@ -88,7 +90,7 @@ func (s Service) call(ctx context.Context, path string, response interface{}) er
 	var userTokens StravaUserTokens
 	query := s.DB.First(&userTokens, "user_id = ?", userId)
 	if query.RecordNotFound() {
-		return errors.New("current user doesn't have strava access tokens")
+		return NoTokenError
 	} else if query.Error != nil {
 		return query.Error
 	}

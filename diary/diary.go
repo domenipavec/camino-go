@@ -485,7 +485,7 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	activities, err := c.strava.RecentActivities(r.Context())
-	if err != nil {
+	if err != nil && err != strava.NoTokenError {
 		c.render.Error(w, r, err)
 		return
 	}
