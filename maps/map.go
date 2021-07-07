@@ -58,7 +58,11 @@ func (c *Maps) ViewHandler(w http.ResponseWriter, r *http.Request) {
 
 	var groups []models.MapGroup
 
-	query := c.DB.Preload("Entries.DiaryEntry").Order("id desc").Find(&groups)
+	query := c.DB.Preload("Entries.DiaryEntry").Debug().
+		Preload("Entries.DiaryEntry.Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("diary_entry_id, RANDOM()").Select("distinct on (diary_entry_id) *")
+		}).
+		Order("id desc").Find(&groups)
 	if err := query.Error; err != nil {
 		c.render.Error(w, r, err)
 		return
