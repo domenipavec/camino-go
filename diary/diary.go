@@ -125,6 +125,14 @@ func (c Diary) CanEdit(entry models.DiaryEntry, userItf interface{}) bool {
 	return user.HasPermissions("update_diary_entries")
 }
 
+func (c Diary) CanSeeUnpublished(userItf interface{}) bool {
+	if userItf == nil {
+		return false
+	}
+	user := userItf.(authorization.User)
+	return user.HasPermissions("update_diary_entries")
+}
+
 func (c Diary) CanCreate(userItf interface{}) bool {
 	if userItf == nil {
 		return false
@@ -841,8 +849,11 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 		Preload("Images", func(db *gorm.DB) *gorm.DB {
 			return db.Order("diary_entry_id, RANDOM()").Select("distinct on (diary_entry_id) *")
 		}).
-		Where("published = ? or author_id = ?", true, userID).
 		Order("created_at desc")
+
+	if !c.CanSeeUnpublished(r.Context().Value("user")) {
+		query = query.Where("published = ? or author_id = ?", true, userID)
+	}
 
 	var yearItf interface{}
 	if yearStr != "" {
