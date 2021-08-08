@@ -84,7 +84,7 @@
         <div id="height-chart" class="styled" rel="{{ entry.MapEntry.GpsDataID }}"></div>
         <script type="text/javascript" src="//www.google.com/jsapi"></script>
         <script type="text/javascript">
-var heightChartData = {{ entry.MapEntry.GpsData.Data|safe }};
+var heightChartData = {{ entry.MapEntry.GpsData.OptimizedData|safe }};
         </script>
         <script src="/static/js/height-chart.js"></script>
     {% endif %}

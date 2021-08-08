@@ -90,3 +90,28 @@ type DataEntry struct {
 	Elevation float64   `json:"elevation"`
 	Distance  float64   `json:"dist"`
 }
+
+func (g GpsData) OptimizedData() (string, error) {
+	var entries, optimized []DataEntry
+	err := json.Unmarshal([]byte(g.Data), &entries)
+	if err != nil {
+		return "", err
+	}
+
+	previousDistance := -1.0
+	for _, entry := range entries {
+		if entry.Distance-previousDistance > 0.01 {
+			previousDistance = entry.Distance
+			optimized = append(optimized, entry)
+		}
+	}
+	if optimized[len(optimized)-1] != entries[len(entries)-1] {
+		optimized = append(optimized, entries[len(entries)-1])
+	}
+
+	data, err := json.Marshal(optimized)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}

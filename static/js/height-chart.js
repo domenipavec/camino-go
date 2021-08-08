@@ -20,11 +20,13 @@ function displayHeightChart () {
         }
 
         average += parseFloat(value.elevation)
-        if (i % decimation !== 0) {
-            continue;
-        }
+        if (decimation > 0) {
+            if (i % decimation !== 0) {
+                continue;
+            }
 
-        average /= divisor;
+            average /= divisor;
+        }
 
         dataTable.addRow([{v: parseFloat(value.dist), f: parseFloat(value.dist).toFixed(1) + ' km'}, {v: average, f: average.toFixed(1) + ' m'}]);
 

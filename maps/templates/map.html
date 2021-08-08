@@ -9,7 +9,7 @@
 var browser_key = "{{ browser_key }}";
 var gpsData = {
 {% for element in gps_data %}
-    {{ element.ID }}: {{ element.Data|safe }},
+    {{ element.ID }}: {{ element.OptimizedData|safe }},
 {% endfor %}
 };
 </script>
