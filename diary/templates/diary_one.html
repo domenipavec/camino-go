@@ -74,7 +74,7 @@
 
     {% if entry.MapEntry.GpsDataID %}
         <a
-            href="/map?index={{ entry.MapGroupID }}&marker={{ entry.MapEntryID }}&path={{ entry.MapEntry.GpsDataID }}"
+            href="/map?index={{ entry.MapEntry.MapGroupID }}&marker={{ entry.MapEntryID }}&path={{ entry.MapEntry.GpsDataID }}"
             title="{{ entry.MapEntry.GpsData.Start }} - {{ entry.MapEntry.GpsData.End }} ({{ entry.MapEntry.GpsData.Length|floatformat }} km)">
             <img
                 class="styled img-responsive"

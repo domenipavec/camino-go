@@ -7,11 +7,6 @@
 <script src="/static/js/map.js"></script>
 <script type="text/javascript">
 var browser_key = "{{ browser_key }}";
-var gpsData = {
-{% for element in gps_data %}
-    {{ element.ID }}: {{ element.OptimizedData|safe }},
-{% endfor %}
-};
 </script>
 
 <div class="row">
@@ -21,7 +16,7 @@ var gpsData = {
 
     <div class="col-xs-12 col-sm-2">
     {% for group in groups %}
-        <div class="map-group" id="map-group-{{ group.ID }}">
+        <div class="map-group" id="map-group-{{ group.ID }}" rel="{{ group.ID }}">
             <a href="#">
                 <h3>
                     <img src="//chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|{{ group.Color }}" class="map-marker map-color-icon">
@@ -29,29 +24,6 @@ var gpsData = {
                     {{ group.Name }}
                 </h3>
             </a>
-
-            <ul rel="{{ group.ID }}" class="map-list">
-                {% for entry in group.Entries %}
-                    <li data-lon="{{ entry.Lon }}" data-lat="{{ entry.Lat }}" data-id="{{ entry.ID }}" data-gps="{{ entry.GpsDataID }}">
-                        <div class="map-bubble">
-                            <strong>{{ entry.City }}</strong>
-                            {% if entry.DiaryEntry %}
-                                {% if entry.DiaryEntry.Images %}
-                                {% for image in entry.DiaryEntry.Images %}
-                                    <a href="/diary/{{ entry.DiaryEntry.ID }}" title="{{ image.Description }}">
-                                        <img src="https://res.cloudinary.com/dvmih7vrf/image/fetch/w_200,h_100,c_fill/{{ file_url(image) }}" alt="{{ image.Description }}">
-                                    </a>
-                                {% endfor %}
-                                {% endif %}
-                                - Preberi v dnevniku: <a href="/diary/{{ entry.DiaryEntry.ID }}">{{ entry.DiaryEntry.Title }}</a>
-                            {% endif %}
-                            {% if entry.Description %}
-                                - {{ entry.Description }}
-                            {% endif %}
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
         </div>
     {% endfor %}
     </div>

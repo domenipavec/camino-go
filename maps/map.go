@@ -1,24 +1,23 @@
 package maps
 
 import (
-	"crypto/md5"
-	"encoding/binary"
-	"encoding/hex"
 	"net/http"
-	"strings"
+	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/matematik7/camino-go/diary/models"
 	"github.com/matematik7/gongo"
-	"github.com/matematik7/gongo/authorization"
+	"github.com/matematik7/gongo/files"
 	"github.com/matematik7/gongo/render"
 	"github.com/spf13/viper"
 )
 
 type Maps struct {
 	DB     *gorm.DB
+	Files  *files.Files
 	render *render.Render
 }
 
@@ -29,6 +28,7 @@ func New() *Maps {
 func (c *Maps) Configure(app gongo.App) error {
 	c.DB = app["DB"].(*gorm.DB)
 	c.render = app["Render"].(*render.Render)
+	c.Files = app["Files"].(*files.Files)
 
 	c.render.AddTemplates(packr.NewBox("./templates"))
 
@@ -47,78 +47,146 @@ func (c *Maps) ServeMux() http.Handler {
 	router := chi.NewRouter()
 
 	router.Get("/", c.ViewHandler)
+	router.Get("/group/{groupID:[0-9]+}", c.GroupJSONHandler)
 
 	return router
 }
 
 func (c *Maps) ViewHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: move etag handling to render in gongo (important: binary.Write cannot handle generic uint, must be uint64)
-	// can we just use gongo.Context to somehow calculate etag?
-	etag := md5.New()
-
 	var groups []models.MapGroup
 
-	query := c.DB.Preload("Entries.DiaryEntry").Debug().
-		Preload("Entries.DiaryEntry.Images", func(db *gorm.DB) *gorm.DB {
-			return db.Order("diary_entry_id, RANDOM()").Select("distinct on (diary_entry_id) *")
-		}).
-		Order("id desc").Find(&groups)
+	subQuery := c.DB.Select("distinct map_group_id").Table("map_entries").SubQuery()
+	query := c.DB.Order("id desc").Where("id IN (?)", subQuery).Find(&groups)
 	if err := query.Error; err != nil {
 		c.render.Error(w, r, err)
 		return
 	}
 
-	if r.Context().Value("user") != nil {
-		id := r.Context().Value("user").(authorization.User).ID
-		err := binary.Write(etag, binary.BigEndian, uint64(id))
-		if err != nil {
-			c.render.Error(w, r, err)
-			return
-		}
-	}
-
-	gpsDataIDS := make([]uint, 0, 100)
-	filteredGroups := groups[:0]
-	for _, group := range groups {
-		if len(group.Entries) > 0 {
-			filteredGroups = append(filteredGroups, group)
-		}
-		binary.Write(etag, binary.BigEndian, uint64(group.ID))
-		binary.Write(etag, binary.BigEndian, uint64(group.UpdatedAt.UnixNano()))
-		for _, entry := range group.Entries {
-			binary.Write(etag, binary.BigEndian, uint64(entry.ID))
-			binary.Write(etag, binary.BigEndian, uint64(entry.UpdatedAt.UnixNano()))
-			if entry.GpsDataID != 0 {
-				gpsDataIDS = append(gpsDataIDS, entry.GpsDataID)
-			}
-		}
-	}
-
-	var gpsData []models.GpsData
-	if err := c.DB.Where("id in (?)", gpsDataIDS).Find(&gpsData).Error; err != nil {
-		c.render.Error(w, r, err)
-		return
-	}
-
-	for _, gpsEntry := range gpsData {
-		binary.Write(etag, binary.BigEndian, uint64(gpsEntry.ID))
-		binary.Write(etag, binary.BigEndian, uint64(gpsEntry.UpdatedAt.UnixNano()))
-	}
-
-	etagStr := hex.EncodeToString(etag.Sum(nil))
-	w.Header().Set("Etag", etagStr)
-	if match := r.Header.Get("If-None-Match"); match != "" {
-		if strings.Contains(match, etagStr) {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-	}
-
 	context := render.Context{
-		"groups":      filteredGroups,
-		"gps_data":    gpsData,
+		"groups":      groups,
 		"browser_key": viper.GetString("GMAP_BROWSER_KEY"),
 	}
 
 	c.render.Template(w, r, "map.html", context)
+}
+
+type MapEntryJSON struct {
+	ID          uint            `json:"id"`
+	Title       string          `json:"title"`
+	Description string          `json:"description,omitempty"`
+	Lat         float64         `json:"latitude"`
+	Lon         float64         `json:"longitude"`
+	GpsDataID   uint            `json:"gps_id"`
+	DiaryEntry  *DiaryEntryJSON `json:"diary,omitempty"`
+}
+
+type DiaryEntryJSON struct {
+	ID    uint       `json:"id"`
+	Title string     `json:"title"`
+	Image *ImageJSON `json:"image,omitempty"`
+}
+
+type ImageJSON struct {
+	Description string `json:"description"`
+	URL         string `json:"url"`
+}
+
+func (c *Maps) GroupJSONHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	if err != nil {
+		c.render.NotFound(w, r)
+		return
+	}
+
+	var entries []models.MapEntry
+	result := c.DB.Preload("DiaryEntry.Images", func(db *gorm.DB) *gorm.DB {
+		return db.Order("diary_entry_id, RANDOM()").Select("distinct on (diary_entry_id) *")
+	}).
+		Where("map_group_id = ?", id).Order("id desc").Find(&entries)
+	if err := result.Error; err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	var gpsData models.GpsData
+	gpsRows, err := c.DB.Model(&gpsData).Joins("JOIN map_entries ON map_entries.gps_data_id = gps_data.id").Where("map_entries.map_group_id = ?", id).Rows()
+	if err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	stream := jsoniter.ConfigFastest.BorrowStream(w)
+	defer jsoniter.ConfigFastest.ReturnStream(stream)
+	stream.WriteObjectStart()
+
+	stream.WriteObjectField("entries")
+	stream.WriteArrayStart()
+	for i, entry := range entries {
+		if i != 0 {
+			stream.WriteMore()
+		}
+
+		jsonEntry := MapEntryJSON{
+			ID:          entry.ID,
+			Title:       entry.City,
+			Description: entry.Description,
+			Lat:         entry.Lat,
+			Lon:         entry.Lon,
+			GpsDataID:   entry.GpsDataID,
+		}
+		if entry.DiaryEntry != nil {
+			jsonEntry.DiaryEntry = &DiaryEntryJSON{
+				ID:    entry.DiaryEntry.ID,
+				Title: entry.DiaryEntry.Title,
+			}
+			if len(entry.DiaryEntry.Images) > 0 {
+				url, err := c.Files.URL(entry.DiaryEntry.Images[0])
+				if err != nil {
+					c.render.Error(w, r, err)
+					return
+				}
+				jsonEntry.DiaryEntry.Image = &ImageJSON{
+					Description: entry.DiaryEntry.Images[0].Description,
+					URL:         url,
+				}
+			}
+		}
+
+		stream.WriteVal(jsonEntry)
+	}
+	stream.WriteArrayEnd()
+
+	stream.WriteMore()
+	stream.WriteObjectField("gps")
+	stream.WriteObjectStart()
+	first := true
+	for gpsRows.Next() {
+		err := c.DB.ScanRows(gpsRows, &gpsData)
+		if err != nil {
+			c.render.Error(w, r, err)
+			return
+		}
+		optimizedData, err := gpsData.OptimizedData()
+		if err != nil {
+			c.render.Error(w, r, err)
+			return
+		}
+
+		if !first {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField(strconv.Itoa(int(gpsData.ID)))
+		stream.WriteRaw(optimizedData)
+
+		first = false
+	}
+	if err := gpsRows.Err(); err != nil {
+		c.render.Error(w, r, err)
+		return
+	}
+	stream.WriteObjectEnd()
+
+	stream.WriteObjectEnd()
+	stream.Flush()
 }

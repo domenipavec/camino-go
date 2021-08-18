@@ -419,10 +419,10 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				dataEntries = append(dataEntries, models.DataEntry{
 					Time:      activity.StartDate.Add(time.Second * time.Duration(point.TimeOffset)),
-					Latitude:  point.Latitude,
-					Longitude: point.Longitude,
-					Elevation: point.Altitude,
-					Distance:  point.Distance / 1000,
+					Latitude:  models.Float(point.Latitude),
+					Longitude: models.Float(point.Longitude),
+					Elevation: models.Float(point.Altitude),
+					Distance:  models.Float(point.Distance / 1000),
 				})
 			}
 			// Reverse for biking (going down)
@@ -441,8 +441,8 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 				coords := [][]float64{}
 				for i := 0; i < len(dataEntries); i += inc {
 					coords = append(coords, []float64{
-						dataEntries[i].Latitude,
-						dataEntries[i].Longitude,
+						float64(dataEntries[i].Latitude),
+						float64(dataEntries[i].Longitude),
 					})
 				}
 
@@ -454,12 +454,18 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 				inc *= 2
 			}
 
-			start, err := c.getCity(dataEntries[0].Latitude, dataEntries[0].Longitude)
+			start, err := c.getCity(
+				float64(dataEntries[0].Latitude),
+				float64(dataEntries[0].Longitude),
+			)
 			if err != nil {
 				c.render.Error(w, r, err)
 				return
 			}
-			end, err := c.getCity(dataEntries[len(dataEntries)-1].Latitude, dataEntries[len(dataEntries)-1].Longitude)
+			end, err := c.getCity(
+				float64(dataEntries[len(dataEntries)-1].Latitude),
+				float64(dataEntries[len(dataEntries)-1].Longitude),
+			)
 			if err != nil {
 				c.render.Error(w, r, err)
 				return
