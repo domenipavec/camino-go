@@ -74,7 +74,7 @@ func (s Service) refreshToken(ctx context.Context, userTokens StravaUserTokens) 
 
 	err = s.DB.Save(&userTokens).Error
 	if err != nil {
-		return err
+		return errors.Wrap(err, "user token db write")
 	}
 
 	return nil
@@ -105,7 +105,7 @@ func (s Service) call(ctx context.Context, path string, response interface{}) er
 	if resp.StatusCode == http.StatusUnauthorized {
 		err := s.refreshToken(ctx, userTokens)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "refresh token")
 		} else {
 			return s.call(ctx, path, response)
 		}

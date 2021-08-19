@@ -8,7 +8,7 @@ import (
 type StravaUserTokens struct {
 	gorm.Model
 
-	User   authorization.User
+	User   *authorization.User
 	UserID uint
 
 	AccessToken  string
