@@ -1,4 +1,4 @@
-FROM golang:latest
+FROM golang:1.17
 
 WORKDIR /go/src/github.com/matematik7/camino-go/
 
