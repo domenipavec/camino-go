@@ -84,6 +84,7 @@ func (c *Stats) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		Joins("LEFT JOIN diary_entries de1 ON de1.map_entry_id = me1.id").
 		Where("date_part('year', de1.created_at) = ?", year).
 		Where("de1.published = true").
+		Order("de1.created_at").
 		Find(&gpsData)
 	if query.Error != nil {
 		c.render.Error(w, r, query.Error)
