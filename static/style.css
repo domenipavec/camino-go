@@ -214,6 +214,9 @@ textarea {
 	margin-bottom: 5px;
 	display: inline-block;
 }
+.map-marker {
+    display: inline-block;
+}
 
 /* gallery */
 .gallery img {

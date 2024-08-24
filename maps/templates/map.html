@@ -19,8 +19,8 @@ var browser_key = "{{ browser_key }}";
         <div class="map-group" id="map-group-{{ group.ID }}" rel="{{ group.ID }}">
             <a href="#">
                 <h3>
-                    <img src="//chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|{{ group.Color }}" class="map-marker map-color-icon">
-                    <img src="//chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|dfdfdf" class="map-marker map-gray-icon">
+                    <div class="map-marker map-color-icon" data-color="#{{ group.Color }}"></div>
+                    <div class="map-marker map-gray-icon"></div>
                     {{ group.Name }}
                 </h3>
             </a>
