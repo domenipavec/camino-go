@@ -254,7 +254,7 @@ function loadData(index) {
         }
 
         // move marker to last gps point
-        marker.setPosition(path[path.length - 1]);
+        marker.position = path[path.length - 1];
 
         // set mouse over
         google.maps.event.addListener(polyline, "mouseover", mouseIn);
