@@ -115,7 +115,7 @@ function initializeMap() {
     var grayPin = new google.maps.marker.PinElement({
       background: "#dfdfdf",
       borderColor: "#000000",
-      glyphColor: "#0000ff",
+      glyphColor: color,
       scale: 0.7,
     });
     $(".map-color-icon", map_group).append(colorPin.element);
