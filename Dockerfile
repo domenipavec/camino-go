@@ -1,15 +1,18 @@
-FROM golang:1.17
+FROM golang:1.23
 
 WORKDIR /go/src/github.com/matematik7/camino-go/
 
 COPY go* /
 RUN go mod download
-RUN go get -u github.com/gobuffalo/packr/packr
+RUN go install github.com/gobuffalo/packr/packr@latest
 
 RUN mkdir /deps
 
 RUN mkdir -p /deps/app/views/qor
 RUN cp -r /go/pkg/mod/github.com/qor/admin*/views/* /deps/app/views/qor
+
+# needed for git status
+RUN apt update && apt install xxd
 
 COPY . .
 RUN GOOS=linux packr build -o /binary
