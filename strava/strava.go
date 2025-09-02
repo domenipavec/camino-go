@@ -156,16 +156,19 @@ func (s Service) ActivityPoints(ctx context.Context, id int) ([]Point, error) {
 	}
 
 	var points []Point
+	ensurePoints := func(dataLen int) error {
+		if len(points) != dataLen {
+			if len(points) == 0 {
+				points = make([]Point, dataLen)
+			} else {
+				return errors.Errorf("expected same data len %v, got %v", len(points), dataLen)
+			}
+		}
+		return nil
+	}
 	for _, stream := range streams {
 		if stream.Resolution != "high" {
 			return nil, errors.New("expected high resolution stream")
-		}
-		if len(points) != stream.OriginalSize {
-			if len(points) == 0 {
-				points = make([]Point, stream.OriginalSize)
-			} else {
-				return nil, errors.Errorf("expected original size %v, got %v", len(points), stream.OriginalSize)
-			}
 		}
 
 		switch stream.Type {
@@ -175,8 +178,8 @@ func (s Service) ActivityPoints(ctx context.Context, id int) ([]Point, error) {
 			if err != nil {
 				return nil, err
 			}
-			if len(data) != stream.OriginalSize {
-				return nil, errors.New("data count does not match stream original size")
+			if err := ensurePoints(len(data)); err != nil {
+				return nil, err
 			}
 			for i := range data {
 				points[i].TimeOffset = data[i]
@@ -187,8 +190,8 @@ func (s Service) ActivityPoints(ctx context.Context, id int) ([]Point, error) {
 			if err != nil {
 				return nil, err
 			}
-			if len(data) != stream.OriginalSize {
-				return nil, errors.New("data count does not match stream original size")
+			if err := ensurePoints(len(data)); err != nil {
+				return nil, err
 			}
 			for i := range data {
 				points[i].Distance = data[i]
@@ -199,8 +202,8 @@ func (s Service) ActivityPoints(ctx context.Context, id int) ([]Point, error) {
 			if err != nil {
 				return nil, err
 			}
-			if len(data) != stream.OriginalSize {
-				return nil, errors.New("data count does not match stream original size")
+			if err := ensurePoints(len(data)); err != nil {
+				return nil, err
 			}
 			for i := range data {
 				points[i].Latitude = data[i][0]
@@ -212,8 +215,8 @@ func (s Service) ActivityPoints(ctx context.Context, id int) ([]Point, error) {
 			if err != nil {
 				return nil, err
 			}
-			if len(data) != stream.OriginalSize {
-				return nil, errors.New("data count does not match stream original size")
+			if err := ensurePoints(len(data)); err != nil {
+				return nil, err
 			}
 			for i := range data {
 				points[i].Altitude = data[i]
