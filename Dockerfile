@@ -1,6 +1,6 @@
 FROM golang:1.25
 
-WORKDIR /go/src/github.com/matematik7/camino-go/
+WORKDIR /go/src/github.com/domenipavec/camino-go/
 
 COPY go* /
 RUN go mod download

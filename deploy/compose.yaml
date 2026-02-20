@@ -1,0 +1,35 @@
+services:
+  camino:
+    image: registry.production.ipavec.net/domen/camino:latest
+    container_name: camino-${SUBDOMAIN}
+    labels:
+      traefik.enable: true"
+      traefik.http.routers.camino-${SUBDOMAIN}.rule: "Host(`${SUBDOMAIN}.ipavec.net`)"
+      traefik.http.routers.camino-${SUBDOMAIN}.entrypoints: https
+      traefik.http.routers.camino-${SUBDOMAIN}.tls.certresolver: myresolver
+    networks:
+      - traefik
+      - postgres
+    environment:
+      URL: "https://${SUBDOMAIN}.ipavec.net"
+      SUBDOMAIN: "${SUBDOMAIN}"
+      HOST: 0.0.0.0
+      PSQL_HOST: postgres
+      PSQL_USER: "${SUBDOMAIN}"
+      PSQL_DBNAME: "${SUBDOMAIN}"
+      PSQL_PASSWORD: "${PSQL_PASSWORD}"
+      GOTH_GPLUS_KEY: "704693280880-69nigl9u8e86ufsjrerb929ip6bj49ea.apps.googleusercontent.com"
+      GOTH_GPLUS_SECRET: "${GPLUS_SECRET}"
+      GMAP_BROWSER_KEY: "AIzaSyBDWUXBe22BnEdlfNKZOgW_6jpCpEbWjbA"
+      GMAP_SERVER_KEY: "${GMAP_SERVER_KEY}"
+      ENDOMONDO_EMAIL: "camino@ipavec.net"
+      ENDOMONDO_PASSWORD: "${ENDOMONDO_PASSWORD}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      IMAGES_BUCKET: "images-${SUBDOMAIN}"
+      COOKIE_KEY: "${COOKIE_KEY}"
+      CSRF_KEY: "${CSRF_KEY}"
+      SENTRY_DSN: "${SENTRY_DSN}"
+      MAILGUN_APIKEY: "${MAILGUN_APIKEY}"
+      MAILGUN_PUBLICAPIKEY: "pubkey-251cd515e56af1df9973846a8e9d318e"
+      PROD: "true"
