@@ -2,6 +2,7 @@ services:
   camino:
     image: registry.production.ipavec.net/domen/camino:latest
     container_name: camino-${SUBDOMAIN}
+    restart: always
     labels:
       traefik.enable: true"
       traefik.http.routers.camino-${SUBDOMAIN}.rule: "Host(`${SUBDOMAIN}.ipavec.net`)"
