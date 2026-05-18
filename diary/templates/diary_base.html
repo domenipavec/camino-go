@@ -2,16 +2,16 @@
 
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-    {% if (request.Path == '/' or request.Path == '/diary') and not year %}
+    {% if (request.Path == '/' or request.Path == '/diary') and not diaryGroup %}
         <li class="active">Dnevnik</li>
     {% else %}
         <li><a href="/diary">Dnevnik</a></li>
         {% if request.Path == '/' or request.Path == '/diary' %}
-            <li class="active">{{ year }}</li>
+            <li class="active">{{ diaryGroup.Title }}</li>
         {% elif entry.ID %}
             <li>
-                <a href="/diary?year={{ entry.CreatedAt.Year() }}">
-                    {{ entry.CreatedAt.Year() }}
+                <a href="/diary?year={{ entry.DiaryGroup.Slug }}">
+                    {{ entry.DiaryGroup.Title }}
                 </a>
             </li>
             {% if not subpage %}

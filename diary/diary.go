@@ -60,19 +60,10 @@ func (c *Diary) Configure(app gongo.App) error {
 	c.render.AddTemplates(packr.NewBox("./templates"))
 
 	c.render.AddContextFunc(func(r *http.Request, ctx render.Context) {
-		// TODO: add this as helper to authorization
-		userID := -1
-		if r.Context().Value("user") != nil {
-			userID = int(r.Context().Value("user").(authorization.User).ID)
-		}
-		var years []int
+		var groups []models.DiaryGroup
 		// TODO: add error handling
-		c.DB.Model(&models.DiaryEntry{}).
-			Select("DISTINCT date_part('year', created_at) as year").
-			Where("published = ? or author_id = ?", true, userID).
-			Order("year desc").
-			Pluck("year", &years)
-		ctx["diaryYears"] = years
+		c.DB.Order("created_at DESC").Find(&groups)
+		ctx["diaryGroups"] = groups
 	})
 
 	client, err := maps.NewClient(maps.WithAPIKey(viper.GetString("GMAP_SERVER_KEY")))
@@ -102,6 +93,27 @@ func (c *Diary) Configure(app gongo.App) error {
 		return c.markAllRead(ctx.Value("DB").(*gorm.DB), ctx.Value("user").(authorization.User).ID)
 	})
 
+	// create diary groups if there are none
+	if c.DB.First(&models.DiaryGroup{}).RowsAffected == 0 {
+		var years []int
+		c.DB.Model(&models.DiaryEntry{}).
+			Select("DISTINCT date_part('year', created_at) as year").
+			Order("year desc").
+			Pluck("year", &years)
+
+		for _, year := range years {
+			group := &models.DiaryGroup{
+				Title: fmt.Sprint(year),
+				Slug:  fmt.Sprint(year),
+			}
+			c.DB.Create(group)
+
+			c.DB.
+				Model(&models.DiaryEntry{Title: "a", Text: "b", AuthorID: 1}). // these values are ignored, only needed for validation
+				Where("date_part('year', created_at) = ?", year).Update("diary_group_id", group.ID)
+		}
+	}
+
 	return nil
 }
 
@@ -110,6 +122,7 @@ func (c Diary) Resources() []interface{} {
 		&models.DiaryEntry{},
 		&models.Comment{},
 		&models.EntryUserRead{},
+		&models.DiaryGroup{},
 	}
 }
 
@@ -354,7 +367,7 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		query := c.DB.Preload("MapEntry.GpsData").First(&diaryEntry, id)
+		query := c.DB.Preload("MapEntry.GpsData").Preload("DiaryGroup").First(&diaryEntry, id)
 		if !query.RecordNotFound() && query.Error != nil {
 			c.render.Error(w, r, query.Error)
 			return
@@ -380,6 +393,14 @@ func (c *Diary) EditHandler(w http.ResponseWriter, r *http.Request) {
 
 		if entryID == "" {
 			diaryEntry.AuthorID = r.Context().Value("user").(authorization.User).ID
+
+			var diaryGroup models.DiaryGroup
+			q := c.DB.Order("created_at DESC").First(&diaryGroup)
+			if q.Error != nil {
+				c.render.Error(w, r, q.Error)
+				return
+			}
+			diaryEntry.DiaryGroupID = diaryGroup.ID
 		}
 
 		workout := r.FormValue("workout")
@@ -643,6 +664,7 @@ func (c *Diary) PicturesHandler(w http.ResponseWriter, r *http.Request) {
 		Preload("Images", func(db *gorm.DB) *gorm.DB {
 			return db.Order("images.created_at")
 		}).
+		Preload("DiaryGroup").
 		First(&diaryEntry, id)
 	if query.RecordNotFound() {
 		c.render.NotFound(w, r)
@@ -747,11 +769,12 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := c.DB.Preload("Author").LogMode(true).
+	query := c.DB.Preload("Author").
 		Preload("Comments", func(db *gorm.DB) *gorm.DB {
 			return db.Order("comments.created_at desc")
 		}).
 		Preload("Comments.Author").
+		Preload("DiaryGroup").
 		Preload("MapEntry.GpsData").
 		Preload("Images", func(db *gorm.DB) *gorm.DB {
 			return db.Order("images.created_at")
@@ -769,7 +792,7 @@ func (c *Diary) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	var totalDistance []float64
 	query = c.DB.Model(&models.DiaryEntry{}).
 		Select("COALESCE(SUM(gd1.length), 0) as total_distance").
-		Where("date_part('year', diary_entries.created_at) = ?", entry.CreatedAt.Year()).
+		Where("diary_entries.diary_group_id = ?", entry.DiaryGroupID).
 		Where("diary_entries.created_at <= ?", entry.CreatedAt).
 		Joins("LEFT JOIN map_entries me1 ON diary_entries.map_entry_id = me1.id").
 		Joins("LEFT JOIN gps_data gd1 ON me1.gps_data_id = gd1.id").
@@ -832,44 +855,28 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// show latest year on main page
-	if r.URL.Path == "/" {
-		var year []int
-		query := c.DB.Model(&models.DiaryEntry{}).
-			Select("DISTINCT date_part('year', created_at) as year").
-			Where("published = ? or author_id = ?", true, userID).
-			Order("year desc").
-			Limit(1).
-			Pluck("year", &year)
-		if query.Error != nil {
-			c.render.Error(w, r, query.Error)
-			return
-		}
-		if len(year) > 0 {
-			yearStr = strconv.Itoa(year[0])
-		}
+	var diaryGroup models.DiaryGroup
+	groupQuery := c.DB.Order("created_at desc").Limit(1)
+	if yearStr != "" {
+		groupQuery = groupQuery.Where("slug = ?", yearStr)
+	}
+	groupQuery.First(&diaryGroup)
+	if groupQuery.Error != nil {
+		c.render.Error(w, r, groupQuery.Error)
+		return
 	}
 
 	query := c.DB.Model(&models.DiaryEntry{}).
-		Select("*").
+		Select("*").Debug().
 		Preload("Author").
 		Preload("Images", func(db *gorm.DB) *gorm.DB {
 			return db.Order("diary_entry_id, RANDOM()").Select("distinct on (diary_entry_id) *")
 		}).
+		Where("diary_group_id = ?", diaryGroup.ID).
 		Order("created_at desc")
 
 	if !c.CanSeeUnpublished(r.Context().Value("user")) {
 		query = query.Where("published = ? or author_id = ?", true, userID)
-	}
-
-	var yearItf interface{}
-	if yearStr != "" {
-		year, err := strconv.Atoi(yearStr)
-		if err != nil {
-			c.render.Error(w, r, errors.Wrap(err, "invalid year"))
-			return
-		}
-		query = query.Where("date_part('year', created_at) = ?", year)
-		yearItf = year
 	}
 
 	// paging
@@ -951,7 +958,7 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 		"pages":      pages,
 		"prevOffset": prevOffset,
 		"nextOffset": nextOffset,
-		"year":       yearItf,
+		"diaryGroup": diaryGroup,
 	}
 
 	c.render.Template(w, r, "diary_all.html", context)

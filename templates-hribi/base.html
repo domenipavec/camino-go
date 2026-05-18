@@ -56,10 +56,10 @@ $(function () {
                         Dnevnik <span class="caret"></span>
                     </a>
                     <ul class="dropdown-menu" role="menu">
-                        {% for diaryYear in diaryYears %}
-                            <li{% if diaryYear == year %} class="active"{% endif %}>
-                                <a href="/diary?year={{ diaryYear }}" title="Dnevnik za leto {{ diaryYear }}">
-                                    {{ diaryYear }}
+                        {% for diaryGroup in diaryGroups %}
+                            <li{% if diaryGroup.Slug == year %} class="active"{% endif %}>
+                                <a href="/diary?year={{ diaryGroup.Slug }}" title="Dnevnik za {{ diaryGroup.Title }}">
+                                    {{ diaryGroup.Title }}
                                 </a>
                             </li>
                         {% endfor %}

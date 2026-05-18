@@ -21,15 +21,17 @@ func init() {
 
 type DiaryEntry struct {
 	gorm.Model
-	Title      string             `valid:"required"`
-	Text       string             `gorm:"type:text" valid:"required"`
-	Author     authorization.User `valid:"-"`
-	AuthorID   uint               `valid:"required"`
-	Comments   []Comment          `valid:"-"`
-	MapEntry   MapEntry           `valid:"-"`
-	MapEntryID uint
-	Images     []files.Image `gorm:"many2many:diary_image"`
-	Published  bool
+	Title        string             `valid:"required"`
+	Text         string             `gorm:"type:text" valid:"required"`
+	Author       authorization.User `valid:"-"`
+	AuthorID     uint               `valid:"required"`
+	Comments     []Comment          `valid:"-"`
+	MapEntry     MapEntry           `valid:"-"`
+	MapEntryID   uint
+	Images       []files.Image `gorm:"many2many:diary_image"`
+	Published    bool
+	DiaryGroupID uint
+	DiaryGroup   DiaryGroup
 
 	NumComments uint `gorm:"-"`
 	Viewed      bool `gorm:"-"`
@@ -67,4 +69,10 @@ type EntryUserRead struct {
 type Workout struct {
 	ID          string
 	Description string
+}
+
+type DiaryGroup struct {
+	gorm.Model
+	Title string
+	Slug  string
 }

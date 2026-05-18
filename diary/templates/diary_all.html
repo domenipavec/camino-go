@@ -42,13 +42,13 @@
 <ul class="pagination clear">
 	{{ pagination }}
 	{% if prevOffset >= pages|first %}
-		<li><a href="/diary?year={{ year }}&offset={{ prevOffset }}">&lt;</a></li>
+		<li><a href="/diary?year={{ diaryGruop.Slug }}&offset={{ prevOffset }}">&lt;</a></li>
 	{% endif %}
 	{% for i in pages %}
-		<li{% if offset == i %} class="active"{% endif %}><a href="/diary?year={{ year }}&offset={{ i }}">{{ forloop.Counter }}</a></li>
+		<li{% if offset == i %} class="active"{% endif %}><a href="/diary?year={{ diaryGroup.Slug }}&offset={{ i }}">{{ forloop.Counter }}</a></li>
 	{% endfor %}
 	{% if nextOffset <= pages|last %}
-		<li><a href="/diary?year={{ year }}&offset={{ nextOffset }}">&gt;</a></li>
+		<li><a href="/diary?year={{ diaryGroup.Slug }}&offset={{ nextOffset }}">&gt;</a></li>
 	{% endif %}
     <div class="clear"></div>
 </ul>
