@@ -4,10 +4,10 @@ services:
     container_name: camino-${SUBDOMAIN}
     restart: always
     labels:
-      traefik.enable: true"
-      traefik.http.routers.camino-${SUBDOMAIN}.rule: "Host(`${SUBDOMAIN}.ipavec.net`)"
-      traefik.http.routers.camino-${SUBDOMAIN}.entrypoints: https
-      traefik.http.routers.camino-${SUBDOMAIN}.tls.certresolver: myresolver
+      - traefik.enable=true
+      - traefik.http.routers.camino-${SUBDOMAIN}.rule=Host(`${SUBDOMAIN}.ipavec.net`)
+      - traefik.http.routers.camino-${SUBDOMAIN}.entrypoints=https
+      - traefik.http.routers.camino-${SUBDOMAIN}.tls.certresolver=myresolver
     networks:
       - traefik
       - postgres
