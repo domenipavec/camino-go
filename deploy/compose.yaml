@@ -34,3 +34,9 @@ services:
       MAILGUN_APIKEY: "${MAILGUN_APIKEY}"
       MAILGUN_PUBLICAPIKEY: "pubkey-251cd515e56af1df9973846a8e9d318e"
       PROD: "true"
+
+networks:
+  traefik:
+    external: true
+  postgres:
+    external: true
