@@ -72,10 +72,10 @@ $(function () {
                         Statistika <span class="caret"></span>
                     </a>
                     <ul class="dropdown-menu" role="menu">
-                        {% for statsYear in statsYears %}
-                            <li{% if statsYear == year %} class="active"{% endif %}>
-                                <a href="/stats/{{ statsYear }}" title="Statistika za leto {{ statsYear }}">
-                                    {{ statsYear }}
+                        {% for diaryGroup in statsDiaryGroups %}
+                            <li{% if diaryGroup.Slug == year %} class="active"{% endif %}>
+                                <a href="/stats/{{ diaryGroup.Slug }}" title="Statistika za {{ diaryGroup.Title }}">
+                                    {{ diaryGroup.Title }}
                                 </a>
                             </li>
                         {% endfor %}

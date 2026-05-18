@@ -2,7 +2,6 @@ package stats
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/flosch/pongo2"
 	"github.com/go-chi/chi"
@@ -30,16 +29,17 @@ func (c *Stats) Configure(app gongo.App) error {
 	c.render.AddTemplates(packr.NewBox("./templates"))
 
 	c.render.AddContextFunc(func(r *http.Request, ctx render.Context) {
-		var years []int
+		var groups []models.DiaryGroup
 		// TODO: handle errors
-		c.DB.Model(&models.DiaryEntry{}).
-			Select("DISTINCT date_part('year', diary_entries.created_at) as year").
-			Joins("LEFT JOIN map_entries me1 ON diary_entries.map_entry_id = me1.id").
+		c.DB.
+			Joins("LEFT JOIN diary_entries de ON de.diary_group_id = diary_groups.id").
+			Joins("LEFT JOIN map_entries me1 ON de.map_entry_id = me1.id").
 			Joins("LEFT JOIN gps_data gd1 ON me1.gps_data_id = gd1.id").
-			Where("gd1.id IS NOT NULL").
-			Order("year desc").
-			Pluck("year", &years)
-		ctx["statsYears"] = years
+			Group("diary_groups.id").
+			// Where("gd1.id IS NOT NULL").
+			Order("created_at desc").
+			Find(&groups)
+		ctx["statsDiaryGroups"] = groups
 	})
 
 	pongo2.RegisterFilter("sum", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
@@ -66,15 +66,23 @@ func (c *Stats) Configure(app gongo.App) error {
 func (c *Stats) ServeMux() http.Handler {
 	router := chi.NewRouter()
 
-	router.Get("/{year:[0-9]+}", c.ViewHandler)
+	router.Get("/{year}", c.ViewHandler)
 
 	return router
 }
 
 func (c *Stats) ViewHandler(w http.ResponseWriter, r *http.Request) {
-	year, err := strconv.Atoi(chi.URLParam(r, "year"))
-	if err != nil {
+	year := chi.URLParam(r, "year")
+
+	var diaryGroup models.DiaryGroup
+	groupQuery := c.DB.Order("created_at desc").Limit(1).
+		Where("slug = ?", year).
+		First(&diaryGroup)
+	if groupQuery.RecordNotFound() {
 		c.render.NotFound(w, r)
+		return
+	} else if groupQuery.Error != nil {
+		c.render.Error(w, r, groupQuery.Error)
 		return
 	}
 
@@ -82,7 +90,7 @@ func (c *Stats) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	query := c.DB.
 		Joins("LEFT JOIN map_entries me1 ON gps_data.id = me1.gps_data_id").
 		Joins("LEFT JOIN diary_entries de1 ON de1.map_entry_id = me1.id").
-		Where("date_part('year', de1.created_at) = ?", year).
+		Where("de1.diary_group_id = ?", diaryGroup.ID).
 		Where("de1.published = true").
 		Order("de1.created_at").
 		Find(&gpsData)
@@ -102,10 +110,10 @@ func (c *Stats) ViewHandler(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: separate year to fix active year marker
 	context := render.Context{
-		"year":      year,
-		"distances": distances,
-		"times":     times,
-		"speeds":    speeds,
+		"diaryGroup": diaryGroup,
+		"distances":  distances,
+		"times":      times,
+		"speeds":     speeds,
 	}
 
 	c.render.Template(w, r, "stats.html", context)

@@ -861,7 +861,10 @@ func (c *Diary) ListHandler(w http.ResponseWriter, r *http.Request) {
 		groupQuery = groupQuery.Where("slug = ?", yearStr)
 	}
 	groupQuery.First(&diaryGroup)
-	if groupQuery.Error != nil {
+	if groupQuery.RecordNotFound() {
+		c.render.NotFound(w, r)
+		return
+	} else if groupQuery.Error != nil {
 		c.render.Error(w, r, groupQuery.Error)
 		return
 	}
