@@ -98,7 +98,7 @@ func (c *Diary) Configure(app gongo.App) error {
 		var years []int
 		c.DB.Model(&models.DiaryEntry{}).
 			Select("DISTINCT date_part('year', created_at) as year").
-			Order("year desc").
+			Order("year asc").
 			Pluck("year", &years)
 
 		for _, year := range years {
