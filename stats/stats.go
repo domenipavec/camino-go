@@ -36,7 +36,7 @@ func (c *Stats) Configure(app gongo.App) error {
 			Joins("LEFT JOIN map_entries me1 ON de.map_entry_id = me1.id").
 			Joins("LEFT JOIN gps_data gd1 ON me1.gps_data_id = gd1.id").
 			Group("diary_groups.id").
-			// Where("gd1.id IS NOT NULL").
+			Where("gd1.id IS NOT NULL").
 			Order("created_at desc").
 			Find(&groups)
 		ctx["statsDiaryGroups"] = groups
